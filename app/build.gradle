@@ -1,10 +1,11 @@
+
 apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 28
     defaultConfig {
         applicationId "ch.bfh.ti.these.msp"
-        minSdkVersion 21
+        minSdkVersion 24
         targetSdkVersion 28
         versionCode 1
         versionName "1.0"
@@ -43,6 +44,11 @@ android {
         doNotStrip "*/*/libDJIUpgradeJNI.so"
         exclude 'META-INF/rxjava.properties'
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
 }
 
 dependencies {
@@ -63,7 +69,11 @@ dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.0.0'
     implementation 'androidx.lifecycle:lifecycle-extensions:2.0.0-rc01'
     implementation 'androidx.annotation:annotation:1.0.0'
-    
-    implementation 'io.dronefleet.mavlink:mavlink:1.1.5'
 
+    //implementation 'io.reactivex.rxjava3:rxjava:3.0.0-RC3'
+    //implementation name: 'mavlink-1.1.5'
+    //implementation files('libs/mavlink-1.1.5.jar')
+    //implementation files('libs/mavlink-protocol-1.1.5.jar')
+
+    implementation 'io.dronefleet.mavlink:mavlink:1.1.5'
 }
