@@ -18,7 +18,7 @@ import android.util.Log;
 import android.widget.Toast;
 
 import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
-import ch.bfh.ti.these.msp.mavlink.microservices.MavlinkMicroServiceException;
+import ch.bfh.ti.these.msp.mavlink.microservices.MicroServiceException;
 import ch.bfh.ti.these.msp.models.Mission;
 import dji.common.error.DJIError;
 import dji.common.error.DJISDKError;
@@ -216,7 +216,7 @@ public class MainActivity extends AppCompatActivity {
                         return null;
                     });
         }
-        catch (MavlinkMicroServiceException me){
+        catch (MicroServiceException me){
 
         }
         catch (Exception e){

@@ -20,12 +20,13 @@ public class MissionMicroService extends MicroService {
     }
 
     @Override
-    public void execute() throws IOException, InterruptedException, MavlinkMicroServiceException {
+    public void execute() throws IOException, InterruptedException, MicroServiceException {
 
         switch (step) {
 
             // initialize
             case 0:
+                System.out.println("Mission master "+ step +": init" );
                 state = EnumMicroServiceState.EXECUTE;
                 ++step;
                 break;
@@ -50,7 +51,7 @@ public class MissionMicroService extends MicroService {
                         ++step;
                     }
                     else {
-                        throw new MavlinkMicroServiceException(this, "Wrong sequence number");
+                        throw new MicroServiceException(this, "Wrong sequence number");
                     }
                 }
                 break;

@@ -4,7 +4,6 @@ import io.dronefleet.mavlink.MavlinkConnection;
 import io.dronefleet.mavlink.MavlinkMessage;
 
 import java.io.IOException;
-import java.time.Duration;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.*;
@@ -92,16 +91,15 @@ public abstract class MicroService<T> implements Callable<T> {
      * Abstract execution function for the service.
      * @throws IOException
      */
-    protected abstract void execute() throws IOException, InterruptedException, MavlinkMicroServiceException;
+    protected abstract void execute() throws IOException, InterruptedException, MicroServiceException;
 
     /**
-     * Takse a Mavlink message when ready out of the message queue
+     * Takes a Mavlink message when ready out of the message queue
      *
-     * @param <T>
      * @return
      * @throws InterruptedException
      */
-    protected <T> MavlinkMessage<T> takeMessage() throws InterruptedException {
+    protected MavlinkMessage takeMessage() throws InterruptedException {
         return this.messageQueue.take();
     }
 

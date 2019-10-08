@@ -1,7 +1,5 @@
 package ch.bfh.ti.these.msp.mavlink.microservices;
 
-import ch.bfh.ti.these.msp.models.Mission;
-import ch.bfh.ti.these.msp.models.WayPoint;
 import io.dronefleet.mavlink.MavlinkConnection;
 import io.dronefleet.mavlink.MavlinkMessage;
 import io.dronefleet.mavlink.common.*;
@@ -16,19 +14,20 @@ public class HeartbeatMicroService extends MicroService {
     }
 
     @Override
-    public void execute() throws IOException, InterruptedException, MavlinkMicroServiceException {
+    public void execute() throws IOException, InterruptedException, MicroServiceException {
 
-        System.out.println("Client :" +step);
         switch (step) {
 
             // initialize
             case 0:
+                System.out.println("Hearbeat master "+ step +": init" );
                 state = EnumMicroServiceState.EXECUTE;
                 ++step;
                 break;
 
             // send heartbeat
             case 1:
+                System.out.println("Hearbeat master "+ step +": Heartbeat" );
                 connection.send1(systemId, componentId, Heartbeat.builder()
                         .type(MavType.MAV_TYPE_GCS)
                         .autopilot(MavAutopilot.MAV_AUTOPILOT_INVALID)
@@ -39,10 +38,10 @@ public class HeartbeatMicroService extends MicroService {
                 break;
             // receive heartbeat
             case 2:
-
+                System.out.println("Hearbeat master "+ step +": Heartbeat response" );
                 MavlinkMessage message = takeMessage();
                 if (message.getPayload() instanceof Heartbeat) {
-                    MissionRequestInt payload = (MissionRequestInt)message.getPayload();
+                    Heartbeat payload = (Heartbeat)message.getPayload();
                     state = EnumMicroServiceState.DONE;
                 }
                 else {
