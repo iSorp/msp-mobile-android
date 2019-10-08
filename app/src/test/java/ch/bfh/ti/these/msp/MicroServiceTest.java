@@ -5,6 +5,8 @@ import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
 import ch.bfh.ti.these.msp.models.Mission;
 import ch.bfh.ti.these.msp.models.WayPoint;
 import io.dronefleet.mavlink.common.*;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.dronefleet.mavlink.MavlinkConnection;
@@ -25,25 +27,40 @@ import static org.junit.Assert.*;
  */
 public class MicroServiceTest {
 
-    final MavLinkTcpServer testServer = new MavLinkTcpServer();
+    private MavlinkTcpServer testServer;
+    private Mission mission;
 
     private final int MISSION_COUNT = 2;
 
     public MicroServiceTest(){
 
+        Mission mission = new Mission();
+        for (int i = 0; i < MISSION_COUNT; i++) {
+            mission.addWayPoint(new WayPoint());
+        }
+    }
+
+    @Before
+    public void tearUp() {
+        testServer = new MavlinkTcpServer(new MavlinkMissionSlave());
+
+        mission = new Mission();
+        for (int i = 0; i < MISSION_COUNT; i++) {
+            mission.addWayPoint(new WayPoint());
+        }
+    }
+
+    @After
+    public void tearDown() {
+
     }
 
     @Test
-    public void mavLinkMasterTes() {
-        Executors.newSingleThreadExecutor().submit(testServer);
+    public void mavLinkMasterTest() {
 
         try (Socket socket = new Socket("localhost", 5001)) {
             MavlinkMaster master = new MavlinkMaster();
             master.connect(1,1, socket.getInputStream(), socket.getOutputStream());
-
-            Mission mission = new Mission();
-            mission.addWayPoint(new WayPoint());
-            mission.addWayPoint(new WayPoint());
 
             master.sendMissionAsync(mission)
                     .thenAccept((a)-> {
@@ -63,41 +80,13 @@ public class MicroServiceTest {
         }
     }
 
+    class MavlinkMissionSlave implements MavlinkSlave {
 
-    class MavLinkTcpServer implements Runnable {
+        int systemId = 1;
+        int componentId = 1;
+        int itemCount = 1;
 
-        @Override
-        public void run() {
-            ServerSocket server = null;
-            Socket client = null;
-            try {
-                server = new ServerSocket(5001);
-
-                client = server.accept();
-                MavlinkConnection connection = MavlinkConnection.create(
-                        client.getInputStream(),
-                        client.getOutputStream());
-                while (mavLinkMissionSlave(connection));
-            }
-            catch (IOException eio) {
-                System.out.println(eio.getMessage());
-            }
-            finally {
-                try {
-                    client.close();
-                }
-                catch (IOException e) {
-
-                }
-
-            }
-        }
-
-        public boolean mavLinkMissionSlave(MavlinkConnection connection) {
-
-            int systemId = 1;
-            int componentId = 1;
-            int itemCount = 1;
+        public boolean execute(MavlinkConnection connection) {
 
             try {
 
@@ -110,7 +99,7 @@ public class MicroServiceTest {
                                 .seq(itemCount)
                                 .build());
 
-                        System.out.println("Server: MissionRequestInt");
+                        System.out.println("Mission slave: MissionRequestInt");
 
                     }
                     if (message.getPayload() instanceof MissionItem) {
@@ -120,7 +109,7 @@ public class MicroServiceTest {
                                     .missionType(MavMissionType.MAV_MISSION_TYPE_MISSION)
                                     .build());
 
-                            System.out.println("Server: MissionAck");
+                            System.out.println("Mission slave: MissionAck");
                             return false;
                         }
                         else {
@@ -129,7 +118,7 @@ public class MicroServiceTest {
                                     .seq(itemCount)
                                     .build());
 
-                            System.out.println("Server: MissionRequestInt");
+                            System.out.println("Mission slave: MissionRequestInt");
                         }
                     }
                 }
@@ -142,5 +131,7 @@ public class MicroServiceTest {
             return true;
         }
     }
+
+
 
 }

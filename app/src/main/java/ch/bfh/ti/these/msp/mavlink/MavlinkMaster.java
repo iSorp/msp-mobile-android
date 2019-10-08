@@ -95,7 +95,7 @@ public class MavlinkMaster {
 
                     while ((message = connection.next()) != null) {
                         for (MicroService service : serviceQueue) {
-                            service.setMessage(message);
+                            service.addMessage(message);
                         }
 
                         // -> notify registered listeners <-

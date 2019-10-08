@@ -4,9 +4,12 @@ import io.dronefleet.mavlink.MavlinkConnection;
 import io.dronefleet.mavlink.MavlinkMessage;
 
 import java.io.IOException;
+import java.time.Duration;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.*;
+
+import static ch.bfh.ti.these.msp.util.Definitions.*;
 
 
 /**
@@ -28,12 +31,14 @@ public abstract class MicroService<T> implements Callable<T> {
     protected MavlinkConnection connection;
     protected int step = 0;
     protected EnumMicroServiceState state;
-    protected Timer timer = new Timer();
-    protected T result;
 
-    private long timeout = 30000;
-    private TimeoutTask timeoutTimer;
-    private BlockingQueue<MavlinkMessage> messageQueue = new ArrayBlockingQueue<MavlinkMessage>(1);
+    // If service does not supply a result, return null
+    protected T result = null;
+
+    private long timeout = 10000;
+    private Timer timer = new Timer();
+    private TimeoutTask timeoutTask = new TimeoutTask();
+    private BlockingQueue<MavlinkMessage> messageQueue = new ArrayBlockingQueue<MavlinkMessage>(MAVLINK_MESSAGE_BUFFER);
 
     private volatile boolean timeoutReached;
 
@@ -55,7 +60,7 @@ public abstract class MicroService<T> implements Callable<T> {
         this.timeout = timeout;
     }
 
-    public void setMessage(MavlinkMessage message) {
+    public void addMessage(MavlinkMessage message) {
         messageQueue.add(message);
     }
 
@@ -69,20 +74,20 @@ public abstract class MicroService<T> implements Callable<T> {
     @Override
     public T call() throws Exception {
         state = EnumMicroServiceState.IDLE;
-        while (state != EnumMicroServiceState.DONE) {
 
-            // TODO better solution for Timeout, timeout after each step or after the whole service?
-            timer = new Timer();
-            timer.schedule(new TimeoutTask(), timeout);
-            execute();
-            timer.cancel();
-
-            if (timeoutReached)
-                throw new TimeoutException();
+        try {
+            while (state != EnumMicroServiceState.DONE) {
+                restartTimer();
+                execute();
+                if (timeoutReached)
+                    throw new TimeoutException();
+            }
+        }
+        finally {
+            stopTimer();
         }
         return result;
     }
-
     /**
      * Abstract execution function for the service.
      * @throws IOException
@@ -109,5 +114,18 @@ public abstract class MicroService<T> implements Callable<T> {
             timeoutReached = true;
         }
     };
+
+    private void restartTimer() {
+        timeoutTask.cancel();
+        timeoutTask = new TimeoutTask();
+        timer.schedule(timeoutTask, timeout);
+        timer.purge();
+    }
+
+    private void stopTimer() {
+        timeoutTask.cancel();
+        timer.cancel();
+        timer.purge();
+    }
 
 }

@@ -22,7 +22,6 @@ public class MissionMicroService extends MicroService {
     @Override
     public void execute() throws IOException, InterruptedException, MavlinkMicroServiceException {
 
-        System.out.println("Client :" +step);
         switch (step) {
 
             // initialize
@@ -33,6 +32,7 @@ public class MissionMicroService extends MicroService {
 
             // send mission count
             case 1:
+                System.out.println("Mission master "+ step +": MissionCount" );
                 connection.send1(systemId, componentId, MissionCount.builder()
                         .missionType(MavMissionType.MAV_MISSION_TYPE_MISSION)
                         .count(mission.getWayPoints().size())
@@ -41,7 +41,7 @@ public class MissionMicroService extends MicroService {
                 break;
             // receive request int
             case 2:
-
+                System.out.println("Mission master "+ step +": MissionRequestInt" );
                 MavlinkMessage message = takeMessage();
                 if (message.getPayload() instanceof MissionRequestInt) {
                     MissionRequestInt payload = (MissionRequestInt)message.getPayload();
@@ -56,6 +56,7 @@ public class MissionMicroService extends MicroService {
                 break;
             // send mission item
             case 3:
+                System.out.println("Mission master "+ step +": MissionItem" );
                 WayPoint p = mission.getWayPoints().get(intemIndex);
                 connection.send1(systemId, componentId, MissionItem.builder()
                         .missionType(MavMissionType.MAV_MISSION_TYPE_MISSION)
@@ -70,7 +71,9 @@ public class MissionMicroService extends MicroService {
                 break;
             // wait for mission ACK
             case 4:
+
                 if (intemIndex >= mission.getWayPoints().size()){
+                    System.out.println("Mission master "+ step +": MissionAck" );
                     if (takeMessage().getPayload() instanceof MissionAck) {
                         // upload successful
                         step = 0;
@@ -78,6 +81,7 @@ public class MissionMicroService extends MicroService {
                     }
                 }
                 else {
+                    System.out.println("Mission master "+ step +": next item" );
                     // upload next item?
                     step = 2;
                 }
