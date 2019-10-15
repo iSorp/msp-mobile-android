@@ -7,6 +7,8 @@ import android.hardware.usb.UsbManager;
 import android.os.AsyncTask;
 import android.os.Build;
 
+import android.view.View;
+import android.widget.Button;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -17,9 +19,11 @@ import android.os.Bundle;
 import android.util.Log;
 import android.widget.Toast;
 
+import ch.bfh.ti.these.msp.mavlink.MavlinkBridge;
+import ch.bfh.ti.these.msp.mavlink.MavlinkConfig;
 import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
-import ch.bfh.ti.these.msp.mavlink.microservices.MicroServiceException;
 import ch.bfh.ti.these.msp.models.Mission;
+import ch.bfh.ti.these.msp.models.WayPoint;
 import dji.common.error.DJIError;
 import dji.common.error.DJISDKError;
 import dji.log.DJILog;
@@ -28,14 +32,20 @@ import dji.sdk.base.BaseProduct;
 import dji.sdk.sdkmanager.DJISDKInitEvent;
 import dji.sdk.sdkmanager.DJISDKManager;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+
 import java.util.concurrent.atomic.AtomicBoolean;
+
 
 public class MainActivity extends AppCompatActivity {
 
-    private MavlinkMaster mavlinkMaster = new MavlinkMaster();
     private TextView textView;
+    private MavlinkMaster mavlinkMaster= null;
 
     private static final String TAG = MainActivity.class.getSimpleName();
     private static final String[] REQUIRED_PERMISSION_LIST = new String[] {
@@ -69,12 +79,12 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        //mavlinkMaster.addListener(this);
-
         textView = (TextView)findViewById(R.id.textView1);
+        Button btnMavlink = (Button)findViewById(R.id.btnMavlink);
 
         checkAndRequestPermissions();
     }
+
 
     @Override
     protected void onNewIntent(@NonNull Intent intent) {
@@ -191,7 +201,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-
     private void setTextAsync() {
         textView.post(new Runnable() {
             public void run() {
@@ -200,30 +209,95 @@ public class MainActivity extends AppCompatActivity {
         });
     }
 
-    private void mavlinkConnect() {
-        //mavlinkMaster.connect(1,1, );
+    public void mavlinkConnect(View view) {
+        AsyncTask.execute(new Runnable() {
+            @Override
+            public void run() {
+                mavlinkSendMission();
+            }
+        });
+
     }
 
     private void mavlinkSendMission() {
 
         try {
-            mavlinkMaster.sendMissionAsync(new Mission())
+            if (this.mavlinkMaster == null)
+                this.mavlinkMaster = createMavlinkMaster();
+
+            this.mavlinkMaster.connect();
+            Mission m = new Mission();
+            m.addWayPoint(new WayPoint());
+            mavlinkMaster.getMissionService().uploadMission(m)
                     .thenAccept((a)-> {
-                        textView.setText("sdk successful registered");
+                        textView.setText("Mission sent");
                     })
                     .exceptionally(throwable -> {
                         System.out.println("");
                         return null;
                     });
         }
-        catch (MicroServiceException me){
+        catch (Exception e) {
+            this.runOnUiThread(new Runnable() {
+                public void run() {
+                    Toast.makeText(MainActivity.this.getBaseContext(),e.getMessage(), Toast.LENGTH_SHORT).show();
+                }
+            });
+
+
 
         }
-        catch (Exception e){
-            Log.d(TAG, e.getMessage());
-        }
-
     }
+
+
+    private MavlinkMaster createMavlinkMaster() throws Exception {
+        /*MavlinkConfig config = new MavlinkConfig
+                .Builder(1, new MavlinkAirlinkBridge())
+                .setTimeout(5000)
+                .build();*/
+
+        MavlinkConfig config = createMavlinkTCPWrapper();
+        return new MavlinkMaster(config);
+    }
+
+    private MavlinkConfig createMavlinkTCPWrapper() throws Exception{
+
+        MavlinkConfig config;
+        Socket client = new Socket("192.168.1.132", 5001);
+        config = new MavlinkConfig
+                .Builder(1, new MavlinkBridge() {
+            @Override
+            public InputStream getInputStream() {
+                InputStream is = null;
+                try {  is = client.getInputStream();
+                } catch (IOException e) { e.printStackTrace(); }
+                return is;
+            }
+
+            @Override
+            public OutputStream getOutputStream() {
+                OutputStream os = null;
+                try {  os = client.getOutputStream();
+                } catch (IOException e) { e.printStackTrace(); }
+                return os;
+            }
+        })
+                .setTimeout(2000)
+                .build();
+
+        return config;
+    }
+
+
+
+
+
+
+
+
+
+
+
 
 }
 

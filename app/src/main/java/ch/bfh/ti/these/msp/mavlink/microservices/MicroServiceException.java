@@ -1,11 +1,11 @@
 package ch.bfh.ti.these.msp.mavlink.microservices;
 
 public class MicroServiceException extends Exception {
-    public MicroService microService;
+    public BaseMicroService baseMicroService;
 
-    public MicroServiceException(MicroService microService, String message) {
+    public MicroServiceException(BaseMicroService baseMicroService, String message) {
         super(message);
-        this.microService = microService;
+        this.baseMicroService = baseMicroService;
     }
 
 }
