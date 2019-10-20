@@ -6,9 +6,13 @@ import ch.bfh.ti.these.msp.models.WayPoint;
 import io.dronefleet.mavlink.MavlinkConnection;
 import io.dronefleet.mavlink.MavlinkMessage;
 import io.dronefleet.mavlink.common.*;
+import io.mavsdk.mission.MissionProto;
 
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
+
+import static ch.bfh.ti.these.msp.util.Definitions.MAVLINK_GCS_COMP_ID;
+import static ch.bfh.ti.these.msp.util.Definitions.MAVLINK_GCS_SYS_ID;
 
 
 public class MissionBaseService extends BaseService {
@@ -36,39 +40,43 @@ public class MissionBaseService extends BaseService {
 
                     // send mission count
                     case 1:
-                        System.out.println("Mission master " + step + ": MissionCount");
-                        connection.send1(systemId, componentId, MissionCount.builder()
+                        connection.send1(MAVLINK_GCS_SYS_ID, MAVLINK_GCS_COMP_ID, MissionCount.builder()
                                 .missionType(MavMissionType.MAV_MISSION_TYPE_MISSION)
+                                .targetSystem(systemId)
+                                .targetComponent(componentId)
                                 .count(mission.getWayPoints().size())
                                 .build());
+                        System.out.println("Mission master " + step + ": MissionCount");
                         ++step;
                         break;
                     // receive request int
                     case 2:
-                        System.out.println("Mission master " + step + ": MissionRequestInt");
                         MavlinkMessage message = takeMessage();
+                        System.out.println("Mission master " + step + ": MissionRequestInt");
                         if (message.getPayload() instanceof MissionRequestInt) {
                             MissionRequestInt payload = (MissionRequestInt) message.getPayload();
-
-                            if (payload.seq() == intemIndex + 1) {
-                                ++step;
-                            } else {
-                                throw new MicroServiceException(this, "Wrong sequence number");
-                            }
+                            intemIndex = payload.seq()-1;
+                            ++step;
                         }
                         break;
                     // send mission item
                     case 3:
-                        System.out.println("Mission master " + step + ": MissionItem");
+                        if (intemIndex >= mission.getWayPoints().size()) {
+                            throw new MicroServiceException(this, "Wrong sequence number");
+                        }
+
                         WayPoint p = mission.getWayPoints().get(intemIndex);
-                        connection.send1(systemId, componentId, MissionItem.builder()
+
+                        connection.send1(MAVLINK_GCS_SYS_ID, MAVLINK_GCS_COMP_ID, MissionItemInt.builder()
                                 .missionType(MavMissionType.MAV_MISSION_TYPE_MISSION)
-                                .x((float) p.getLatitude())
-                                .y((float) p.getLongitude())
+                                .x((int)p.getLatitude()*1000)
+                                .y((int)p.getLongitude()*1000)
                                 .z((float) p.getAltitude())
                                 .frame(MavFrame.MAV_FRAME_GLOBAL)
                                 /* TODO action of the waypoint  .command(MavCmd.MAV_CMD_ACCELCAL_VEHICLE_POS)*/
                                 .build());
+
+                        System.out.println("Mission master " + step + ": MissionItem");
                         ++intemIndex;
                         ++step;
                         break;

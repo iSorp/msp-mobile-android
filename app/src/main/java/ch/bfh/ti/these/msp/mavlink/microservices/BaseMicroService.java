@@ -34,7 +34,7 @@ public abstract class BaseMicroService<T> implements Callable<T> {
     private MavlinkMaster.MavlinkListener listener;
 
 
-    protected int systemId, componentId;
+    //protected int systemId, componentId;
     protected int step = 0;
     protected EnumMicroServiceState state;
 
@@ -43,7 +43,7 @@ public abstract class BaseMicroService<T> implements Callable<T> {
     // If service does not supply a result, return null
     protected T result = null;
 
-    private long timeout = 10000;
+    private long timeout = 30000;
     private Timer timer = new Timer();
     private TimeoutTask timeoutTask = new TimeoutTask();
     private BlockingQueue<MavlinkMessage> messageQueue = new ArrayBlockingQueue<MavlinkMessage>(MAVLINK_MESSAGE_BUFFER);

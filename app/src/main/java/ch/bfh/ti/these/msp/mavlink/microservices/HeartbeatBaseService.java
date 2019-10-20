@@ -8,6 +8,9 @@ import io.dronefleet.mavlink.common.*;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
+import static ch.bfh.ti.these.msp.util.Definitions.MAVLINK_GCS_COMP_ID;
+import static ch.bfh.ti.these.msp.util.Definitions.MAVLINK_GCS_SYS_ID;
+
 
 public class HeartbeatBaseService extends BaseService {
 
@@ -30,7 +33,7 @@ public class HeartbeatBaseService extends BaseService {
 
                     // send heartbeat
                     case 1:
-                        connection.send1(systemId, componentId, Heartbeat.builder()
+                        connection.send1(MAVLINK_GCS_SYS_ID, MAVLINK_GCS_COMP_ID, Heartbeat.builder()
                                 .type(MavType.MAV_TYPE_GCS)
                                 .autopilot(MavAutopilot.MAV_AUTOPILOT_INVALID)
                                 .systemStatus(MavState.MAV_STATE_UNINIT)
