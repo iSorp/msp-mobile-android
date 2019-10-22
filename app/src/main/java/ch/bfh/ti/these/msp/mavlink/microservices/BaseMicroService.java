@@ -4,7 +4,6 @@ import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
 import io.dronefleet.mavlink.MavlinkConnection;
 import io.dronefleet.mavlink.MavlinkMessage;
 
-import java.io.EOFException;
 import java.io.IOException;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -12,49 +11,37 @@ import java.util.concurrent.*;
 
 import static ch.bfh.ti.these.msp.util.Definitions.*;
 
+public class BaseMicroService<T> implements Callable<T> {
 
-/**
- * The class BaseMicroService defines an abstract Microservice for an higher level Mavlink API.
- *
- * @author  Samuel Ackermann, Simon Wälti
- * @version 1.0
- * @since   07-10-2019
- */
-public abstract class BaseMicroService<T> implements Callable<T> {
+    protected ServiceState state;
+    protected MavlinkConnection connection;
+    protected MavlinkMessage message;
+    protected T result;
 
-    protected enum EnumMicroServiceState {
-        INIT,
-        EXECUTE,
-        DONE
-    }
-
-
-    volatile protected MavlinkConnection connection;
-
-    private MavlinkMaster.MavlinkListener listener;
-
-
-    //protected int systemId, componentId;
-    protected int step = 0;
-    protected EnumMicroServiceState state;
-
-    private volatile boolean timeoutReached;
-
-    // If service does not supply a result, return null
-    protected T result = null;
-
-    private long timeout = 30000;
+    private BlockingQueue<MavlinkMessage> messageQueue = new ArrayBlockingQueue<MavlinkMessage>(MAVLINK_MESSAGE_BUFFER);
+    private long timeout = MAVLINK_RESPONSE_TIMEOUT;
     private Timer timer = new Timer();
     private TimeoutTask timeoutTask = new TimeoutTask();
-    private BlockingQueue<MavlinkMessage> messageQueue = new ArrayBlockingQueue<MavlinkMessage>(MAVLINK_MESSAGE_BUFFER);
+    private volatile boolean timeoutReached;
 
+    protected MavlinkMaster.MavlinkListener listener;
+    protected int retries = 0;
 
-    public BaseMicroService(MavlinkConnection connection, MavlinkMaster.MavlinkListener listener) {
+    public volatile boolean exit = false;
+
+    public BaseMicroService(MavlinkConnection connection) {
         this.connection = connection;
-        this.listener = listener;
     }
 
+    public BaseMicroService(MavlinkConnection connection, ServiceState initState) {
+        this.connection = connection;
+        initState.setContext(this);
+        this.state = initState;
+    }
+
+
     public void addListener(MavlinkMaster.MavlinkListener listener) {
+        this.listener = listener;
         listener.addService(this);
     }
 
@@ -62,48 +49,10 @@ public abstract class BaseMicroService<T> implements Callable<T> {
         listener.removeService(this);
     }
 
-    // region setter
-
-    public void setTimeout(long timeout) {
-        this.timeout = timeout;
-    }
 
     public void addMessage(MavlinkMessage message) {
         messageQueue.add(message);
     }
-
-    /**
-     * Runs the service until the service work is finished,
-     *
-     * @see EnumMicroServiceState
-     * @return
-     * @throws Exception
-     */
-    @Override
-    public T call() throws Exception {
-        state = EnumMicroServiceState.INIT;
-        step = 0;
-
-        try {
-            while (state != EnumMicroServiceState.DONE) {
-                restartTimer();
-                execute();
-                if (timeoutReached)
-                    throw new TimeoutException();
-            }
-        }
-        finally {
-            stopTimer();
-        }
-
-        return result;
-    }
-    /**
-     * Abstract execution function for the service.
-     * @throws IOException
-     */
-    protected abstract void execute() throws IOException, InterruptedException, MicroServiceException;
-
 
     /**
      * Takes a Mavlink message when ready out of the message queue
@@ -112,7 +61,44 @@ public abstract class BaseMicroService<T> implements Callable<T> {
      * @throws InterruptedException
      */
     protected MavlinkMessage takeMessage() throws InterruptedException {
-        return this.messageQueue.take();
+        // TODO change to interrupt
+        return this.messageQueue.poll(10, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Runs the service until the service work is finished
+     *
+     * @return
+     * @throws Exception
+     */
+    @Override
+    public T call() throws Exception {
+
+        try {
+            retries = 0;
+            exit = false;
+            restartTimer();
+            while (!exit) {
+                this.message = takeMessage();
+                if (state.execute())
+                    restartTimer();
+
+                if (timeoutReached) {
+                    if (retries < MAVLINK_MAX_RETRIES) {
+                        state.timeout();
+                        restartTimer();
+                    }
+                    else {
+                        throw new TimeoutException();
+                    }
+                }
+            }
+        }
+        finally {
+            stopTimer();
+        }
+
+        return result;
     }
 
     /**
@@ -123,9 +109,10 @@ public abstract class BaseMicroService<T> implements Callable<T> {
         public void run() {
             timeoutReached = true;
         }
-    };
+    }
 
     private void restartTimer() {
+        timeoutReached = false;
         timeoutTask.cancel();
         timeoutTask = new TimeoutTask();
         timer.schedule(timeoutTask, timeout);
@@ -136,4 +123,16 @@ public abstract class BaseMicroService<T> implements Callable<T> {
         timeoutTask.cancel();
         timer.purge();
     }
+
+    public void setState(ServiceState state) throws IOException {
+        if (state!= null)
+            state.exit();
+        this.state = state;
+        this.state.enter();
+    }
+
+    public void send(Object payload) throws IOException {
+        connection.send1(MAVLINK_GCS_SYS_ID, MAVLINK_GCS_COMP_ID, payload);
+    }
+
 }

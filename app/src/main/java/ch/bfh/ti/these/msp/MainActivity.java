@@ -85,7 +85,6 @@ public class MainActivity extends AppCompatActivity {
         checkAndRequestPermissions();
     }
 
-
     @Override
     protected void onNewIntent(@NonNull Intent intent) {
         String action = intent.getAction();

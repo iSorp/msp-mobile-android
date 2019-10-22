@@ -3,7 +3,9 @@ package ch.bfh.ti.these.msp.util;
 public final class Definitions {
 
     // TODO may move to ressource files?
-    public final static int MAVLINK_MESSAGE_BUFFER = 10;
+    public final static int MAVLINK_MESSAGE_BUFFER = 100;
+    public final static int MAVLINK_RESPONSE_TIMEOUT = 5000;
+    public final static int MAVLINK_MAX_RETRIES = 5;
 
     public final static String MAVLINK_TEST_HOST = "localhost";
     public final static int MAVLINK_TEST_PORT = 5001;

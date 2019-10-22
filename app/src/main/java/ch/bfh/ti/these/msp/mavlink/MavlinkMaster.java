@@ -6,8 +6,8 @@ import java.io.IOException;
 import java.util.concurrent.*;
 
 import ch.bfh.ti.these.msp.mavlink.microservices.BaseMicroService;
-import ch.bfh.ti.these.msp.mavlink.microservices.HeartbeatBaseService;
-import ch.bfh.ti.these.msp.mavlink.microservices.MissionBaseService;
+import ch.bfh.ti.these.msp.mavlink.microservices.HeartbeatService;
+import ch.bfh.ti.these.msp.mavlink.microservices.MissionService;
 import io.dronefleet.mavlink.MavlinkConnection;
 import io.dronefleet.mavlink.MavlinkMessage;
 
@@ -19,8 +19,8 @@ public class MavlinkMaster {
     private MavlinkConfig config;
     private MavlinkListener listener = new MavlinkListener();
 
-    private MissionBaseService missionService;
-    private HeartbeatBaseService heartbeatService;
+    private MissionService missionService;
+    private HeartbeatService heartbeatService;
 
     public MavlinkMaster(MavlinkConfig config) {
         this.config = config;
@@ -30,11 +30,11 @@ public class MavlinkMaster {
 
         this.sheredExecutor.submit(listener);
 
-        missionService = new MissionBaseService(connection, config.getSystemId(), config.getComponentId(), listener);
-        heartbeatService = new HeartbeatBaseService(connection, config.getSystemId(), config.getComponentId(), listener);
+        missionService = new MissionService(connection, config.getSystemId(), config.getComponentId(), listener);
+        heartbeatService = new HeartbeatService(connection, config.getSystemId(), config.getComponentId(), listener);
     }
 
-    public boolean connect() throws InterruptedException, ExecutionException, TimeoutException {
+    public boolean connect() throws InterruptedException, ExecutionException, TimeoutException, IOException {
 
         CompletableFuture<Boolean> f = getHeartbeatService().ping()
                 .exceptionally(throwable -> {
@@ -51,11 +51,11 @@ public class MavlinkMaster {
         connected = false;
     }
 
-    public HeartbeatBaseService getHeartbeatService() {
+    public HeartbeatService getHeartbeatService() {
         return heartbeatService;
     }
 
-    public MissionBaseService getMissionService() {
+    public MissionService getMissionService() {
         return missionService;
     }
 
@@ -104,7 +104,7 @@ public class MavlinkMaster {
                 }
                 catch (EOFException eof) { }
                 catch (IOException eio) {
-                    System.out.println(eio.getMessage());
+                    //System.out.println(eio.getMessage());
                 }
             }
         }

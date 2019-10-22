@@ -4,34 +4,34 @@ import java.util.ArrayList;
 
 public class WayPoint {
 
-    private double longitude, latitude, altitude;
+    private float longitude, latitude, altitude;
     private ArrayList<Action> actions = new ArrayList<>();
 
     public WayPoint() {
 
     }
 
-    public double getLongitude() {
+    public float getLongitude() {
         return longitude;
     }
 
-    public void setLongitude(double longitude) {
+    public void setLongitude(float longitude) {
         this.longitude = longitude;
     }
 
-    public double getLatitude() {
+    public float getLatitude() {
         return latitude;
     }
 
-    public void setLatitude(double latitude) {
+    public void setLatitude(float latitude) {
         this.latitude = latitude;
     }
 
-    public double getAltitude() {
+    public float getAltitude() {
         return altitude;
     }
 
-    public void setAltitude(double altitude) {
+    public void setAltitude(float altitude) {
         this.altitude = altitude;
     }
 

@@ -4,15 +4,13 @@ import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
 import io.dronefleet.mavlink.MavlinkConnection;
 
 import java.util.concurrent.*;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 public abstract class BaseService {
+
     protected MavlinkMaster.MavlinkListener listener;
     protected int systemId, componentId;
     protected MavlinkConnection connection;
 
-    private final Lock runLock;
 
     /**
      *
@@ -25,16 +23,15 @@ public abstract class BaseService {
         this.componentId = componentId;
         this.connection = connection;
         this.listener = listener;
-        this.runLock = new ReentrantLock();
     }
 
     protected <T> CompletableFuture<T> runAsync(BaseMicroService service) {
-        runLock.lock();
 
         CompletableFuture compf = new CompletableFuture();
         Executors.newSingleThreadExecutor().submit(()-> {
             try {
                 service.addListener(listener);
+                service.state.enter();
                 compf.complete(service.call());
             }
             catch (Exception e){
@@ -42,7 +39,6 @@ public abstract class BaseService {
             }
             finally{
                 service.removeListener(listener);
-                runLock.unlock();
             }
         });
         return compf;

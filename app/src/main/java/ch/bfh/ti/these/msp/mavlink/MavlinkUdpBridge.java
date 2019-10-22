@@ -28,12 +28,10 @@ public class MavlinkUdpBridge implements MavlinkBridge {
         ipAddress = InetAddress.getByName(MAVLINK_TEST_HOST);
         server = new DatagramSocket(sourcePort);
         client = new DatagramSocket();
-        server.setSoTimeout(10);
+        //server.setSoTimeout(10);
     }
 
     public void disconnect() {
-        server.disconnect();
-        client.disconnect();
         server.close();
         client.close();
     }
@@ -68,7 +66,7 @@ public class MavlinkUdpBridge implements MavlinkBridge {
             {
                 ret = 0xff;
                 ret = ret & (buffer[pos++]);
-                System.out.println(String.format("%02x", ret));
+                //System.out.println(String.format("%02x", ret));
             }
             else{
                 pos = -1;
