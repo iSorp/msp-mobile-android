@@ -39,8 +39,7 @@ public class HeartbeatService extends BaseService {
 
                 if (getContext().message.getPayload() instanceof Heartbeat) {
                     System.out.println("Heartbeat service : received Heartbeat");
-                    this.getContext().exit = true;
-                    this.getContext().result = true;
+                    this.getContext().exit(true);
                 }
                 return true;
             }

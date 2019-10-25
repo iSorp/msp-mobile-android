@@ -11,13 +11,14 @@ import java.util.concurrent.*;
 
 import static ch.bfh.ti.these.msp.util.Definitions.*;
 
-public class BaseMicroService<T> implements Callable<T> {
+public class BaseMicroService<TResult> implements Callable<TResult> {
 
     protected ServiceState state;
     protected MavlinkConnection connection;
     protected MavlinkMessage message;
-    protected T result;
 
+    private TResult result;
+    private boolean exit = false; // true = ends the service loop
     private BlockingQueue<MavlinkMessage> messageQueue = new ArrayBlockingQueue<MavlinkMessage>(MAVLINK_MESSAGE_BUFFER);
     private long timeout = MAVLINK_RESPONSE_TIMEOUT;
     private Timer timer = new Timer();
@@ -26,8 +27,6 @@ public class BaseMicroService<T> implements Callable<T> {
 
     protected MavlinkMaster.MavlinkListener listener;
     protected int retries = 0;
-
-    public volatile boolean exit = false;
 
     public BaseMicroService(MavlinkConnection connection) {
         this.connection = connection;
@@ -39,6 +38,22 @@ public class BaseMicroService<T> implements Callable<T> {
         this.state = initState;
     }
 
+    public void setState(ServiceState state) throws IOException {
+        if (state!= null)
+            state.exit();
+        this.state = state;
+        this.state.enter();
+    }
+
+    public void send(Object payload) throws IOException {
+        connection.send1(MAVLINK_GCS_SYS_ID, MAVLINK_GCS_COMP_ID, payload);
+    }
+
+    public void exit(TResult result) {
+        this.result = result;
+        this.exit = true;
+    }
+
 
     public void addListener(MavlinkMaster.MavlinkListener listener) {
         this.listener = listener;
@@ -48,7 +63,6 @@ public class BaseMicroService<T> implements Callable<T> {
     public void removeListener(MavlinkMaster.MavlinkListener listener) {
         listener.removeService(this);
     }
-
 
     public void addMessage(MavlinkMessage message) {
         messageQueue.add(message);
@@ -72,7 +86,7 @@ public class BaseMicroService<T> implements Callable<T> {
      * @throws Exception
      */
     @Override
-    public T call() throws Exception {
+    public TResult call() throws Exception {
 
         try {
             retries = 0;
@@ -122,17 +136,6 @@ public class BaseMicroService<T> implements Callable<T> {
     private void stopTimer() {
         timeoutTask.cancel();
         timer.purge();
-    }
-
-    public void setState(ServiceState state) throws IOException {
-        if (state!= null)
-            state.exit();
-        this.state = state;
-        this.state.enter();
-    }
-
-    public void send(Object payload) throws IOException {
-        connection.send1(MAVLINK_GCS_SYS_ID, MAVLINK_GCS_COMP_ID, payload);
     }
 
 }

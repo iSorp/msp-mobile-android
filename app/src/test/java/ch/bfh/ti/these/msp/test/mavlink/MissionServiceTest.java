@@ -18,12 +18,23 @@ import java.util.concurrent.CompletableFuture;
 public class MissionServiceTest {
 
     private final int MISSION_COUNT = 100;
-
     private Mission mission;
-
+    private MavlinkUdpBridge mavlinkBridge = new MavlinkUdpBridge();
+    private MavlinkMaster master;
 
     @Before
-    public void tearUp() {
+    public void tearUp() throws Exception {
+        mavlinkBridge.connect();
+
+        MavlinkConfig config = new MavlinkConfig
+                .Builder(1, mavlinkBridge)
+                .setTimeout(30000)
+                .setSystemId(1)
+                .setComponentId(1)
+                .build();
+
+        master = new MavlinkMaster(config);
+        master.connect();
 
         mission = new Mission();
         for (int i = 0; i < MISSION_COUNT; i++) {
@@ -33,42 +44,21 @@ public class MissionServiceTest {
 
     @After
     public void tearDown() {
+        mavlinkBridge.disconnect();
     }
 
     @Test
-    public void missionMicroServiceTest() throws SocketException {
-        MavlinkUdpBridge mavlinkBridge = new MavlinkUdpBridge();
-        try {
+    public void missionUploadServiceTest() throws Exception{
 
-            mavlinkBridge.connect();
-
-            MavlinkConfig config = new MavlinkConfig
-                    .Builder(1, mavlinkBridge)
-                    .setTimeout(30000)
-                    .setSystemId(1)
-                    .setComponentId(1)
-                    .build();
-
-            MavlinkMaster master = new MavlinkMaster(config);
-            master.connect();
-            CompletableFuture compf = master.getMissionService().uploadMission(mission)
-                    .thenAccept((a) -> {
-                        Assert.assertNull(a);
-                    })
-                    .exceptionally(throwable -> {
-                        Assert.fail(throwable.toString());
-                        return null;
-                    });
-
-            // Wait for completion
-            compf.get();
-
-        }
-        catch (Exception e) {
-            Assert.fail(e.getMessage());
-        }
-        finally {
-            mavlinkBridge.disconnect();
-        }
+        CompletableFuture compf = master.getMissionService().uploadMission(mission)
+                .thenAccept((a) -> {
+                    Assert.assertNull(a);
+                })
+                .exceptionally(throwable -> {
+                    Assert.fail(throwable.toString());
+                    return null;
+                });
+        // Wait for completion
+        compf.get();
     }
 }

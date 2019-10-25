@@ -156,7 +156,7 @@ public class MissionService extends BaseService {
 
             @Override
             public void enter() throws IOException{
-                getContext().exit = true;
+                getContext().exit(null);
                 this.getContext().setState(new MissionUploadInit(this.getContext()));
             }
 
@@ -167,4 +167,5 @@ public class MissionService extends BaseService {
         }
 
     }
+
 }

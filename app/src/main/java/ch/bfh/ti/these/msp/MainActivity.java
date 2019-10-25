@@ -224,6 +224,13 @@ public class MainActivity extends AppCompatActivity {
             if (this.mavlinkMaster == null)
                 this.mavlinkMaster = createMavlinkMaster();
 
+
+
+
+
+
+
+
             this.mavlinkMaster.connect();
             Mission m = new Mission();
             m.addWayPoint(new WayPoint());

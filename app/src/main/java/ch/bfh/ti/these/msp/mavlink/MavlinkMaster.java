@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.concurrent.*;
 
 import ch.bfh.ti.these.msp.mavlink.microservices.BaseMicroService;
+import ch.bfh.ti.these.msp.mavlink.microservices.FtpService;
 import ch.bfh.ti.these.msp.mavlink.microservices.HeartbeatService;
 import ch.bfh.ti.these.msp.mavlink.microservices.MissionService;
 import io.dronefleet.mavlink.MavlinkConnection;
@@ -20,6 +21,7 @@ public class MavlinkMaster {
     private MavlinkListener listener = new MavlinkListener();
 
     private MissionService missionService;
+    private FtpService ftpService;
     private HeartbeatService heartbeatService;
 
     public MavlinkMaster(MavlinkConfig config) {
@@ -32,6 +34,8 @@ public class MavlinkMaster {
 
         missionService = new MissionService(connection, config.getSystemId(), config.getComponentId(), listener);
         heartbeatService = new HeartbeatService(connection, config.getSystemId(), config.getComponentId(), listener);
+        ftpService = new FtpService(connection, config.getSystemId(), config.getComponentId(), listener);
+
     }
 
     public boolean connect() throws InterruptedException, ExecutionException, TimeoutException, IOException {
@@ -51,12 +55,19 @@ public class MavlinkMaster {
         connected = false;
     }
 
+
+    // region services
+
     public HeartbeatService getHeartbeatService() {
         return heartbeatService;
     }
 
     public MissionService getMissionService() {
         return missionService;
+    }
+
+    public FtpService getFtpService() {
+        return ftpService;
     }
 
 
