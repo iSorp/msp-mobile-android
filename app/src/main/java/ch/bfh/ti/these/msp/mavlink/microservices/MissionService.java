@@ -31,7 +31,7 @@ public class MissionService extends BaseService {
     /**
      * Microservice for Mission upload
      */
-    public class MissionUploadService extends BaseMicroService {
+    private class MissionUploadService extends BaseMicroService {
 
         Mission mission;
 

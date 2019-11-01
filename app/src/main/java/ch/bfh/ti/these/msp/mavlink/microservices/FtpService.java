@@ -1,14 +1,19 @@
 package ch.bfh.ti.these.msp.mavlink.microservices;
 
 import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
+
 import io.dronefleet.mavlink.MavlinkConnection;
 import io.dronefleet.mavlink.MavlinkMessage;
 import io.dronefleet.mavlink.common.FileTransferProtocol;
-import org.bouncycastle.util.Arrays;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.LongBuffer;
 import java.util.concurrent.CompletableFuture;
+
+import static ch.bfh.ti.these.msp.mavlink.microservices.FtpMessage. *;
+
 
 /**
  * Service for FTP functionalities
@@ -16,96 +21,71 @@ import java.util.concurrent.CompletableFuture;
  */
 public class FtpService extends BaseService {
 
-    /**
-     * The byte count of a FileTransferProtocol without payload
-     * @see: //mavlink.io/en/messages/common.html#FILE_TRANSFER_PROTOCOL
-     */
-    public final static int INFO_LENGTH     = 12;
-    public final static int MAX_DATA_SIZE   = 239; // 251-12
-
-    // FTP Message header indexes
-    public final static int SEQ         = 0x00; // 0->1
-    public final static int SESS        = 0x02;
-    public final static int CODE        = 0x03;
-    public final static int SIZE        = 0x04;
-    public final static int REQCODE     = 0x05;
-    public final static int BURST       = 0x06;
-    public final static int PAD         = 0x07;
-    public final static int OFFSET      = 0x08;  // 8->11
-    public final static int DATA        = 0x0B;  // 12->251
-
-
-    // NAK Error on payload index
-    public final static int NAK_EROR = 0x00;
-
-    // NAK Error Information payload data[0]
-    public final static int EOF = 0x06;
-
-    // OpCodes/Command
-    public final static int TERM    = 0x01;
-    public final static int ACK     = 0x80;    // 128
-    public final static int NAK     = 0x81;    // 129
-
-
     public FtpService(MavlinkConnection connection, int systemId, int componentId, MavlinkMaster.MavlinkListener listener) {
         super(connection, systemId, componentId, listener);
     }
 
-    /***
-     * Starts an asynchronous file download
+    /**
+     * Starts an asynchronous listing of all directories and files in a certain folder
      * @param path
      * @return
      * @throws IOException
      */
-    public CompletableFuture<byte[]> downloadFile(String path) throws IOException {
-        return runAsync(new FileDownloadService(this.connection, path));
+    public CompletableFuture<byte[]> listDirectory(String path) throws IOException {
+        return runAsync(new ListDirectoryService(this.connection));
+    }
+
+    /**
+     * Starts an asynchronous file download
+     * @param filePath
+     * @return file as byte[]
+     * @throws IOException
+     */
+    public CompletableFuture<byte[]> downloadFile(String filePath) throws IOException {
+        return runAsync(new FileDownloadService(this.connection, filePath));
+    }
+
+    /**
+     * Starts an asynchronous file deletion
+     * @param filePath
+     * @return success state
+     * @throws IOException
+     */
+    public CompletableFuture<byte[]> deletedFile(String filePath) throws IOException {
+        return runAsync(new DeleteFileService(this.connection, filePath));
+    }
+
+    /**
+     * ListDirectoryService
+     */
+    private class ListDirectoryService extends BaseMicroService<byte[]> {
+        public ListDirectoryService(MavlinkConnection connection) throws IOException {
+            super(connection);
+        }
+
+        // TODO ListDirectoryService states
     }
 
     /**
      * FileDownloadService
      */
-    public class FileDownloadService extends BaseMicroService<byte[]> {
+    private class FileDownloadService extends BaseMicroService<byte[]> {
 
         // FTP Session handling
-        private int session = 0x00;
-        private int size    = 0x00;
-        private int offset  = 0x00;
+        private int session = 0;
+        private int size    = 0;
+        private String filePath = "";
+        private ByteBuffer dataBuffer;
 
-        private String path = "";
-        private byte[] file;
 
-        public String getPath() {
-            return this.path;
-        }
-        public void setSession(byte session) {
-            this.session = session;
-        }
-        public int getSession() {
-            return this.session;
-        }
-        public void setSize(int size){
-            this.size = size;
-        }
-        public int getSize() {
-            return this.size;
-        }
-        public void setOffset(int offset){
-            this.offset = offset;
-        }
-        public int getOffset() {
-            return this.offset;
-        }
-
-        public FileDownloadService(MavlinkConnection connection, String path) throws IOException {
+        public FileDownloadService(MavlinkConnection connection, String filePath) throws IOException {
             super(connection);
-            this.path = path;
+            this.filePath = filePath;
             this.state = new FileDownloadInit(this);
         }
 
 
-
         // region states
-
         public class FileDownloadInit extends ServiceState<FileDownloadService> {
 
             public FileDownloadInit(FileDownloadService context) { super(context); }
@@ -114,20 +94,22 @@ public class FtpService extends BaseService {
             public void enter() {
                 try {
 
-                    byte[] path     = this.getContext().getPath().getBytes();
-                    byte[] data     = new byte[INFO_LENGTH+path.length];
-                    byte[] header   = new byte[INFO_LENGTH];
+                    // init session variables
+                    this.getContext().session   = (byte)0;
+                    this.getContext().size      = (byte)0;
 
-                    header[SIZE] = (byte)this.getContext().getPath().getBytes().length;
+                    // prepare request message
+                    FtpMessage ftp = new FtpMessage.Builder()
+                            .setCode(OpenFileRO)
+                            .setData(this.getContext().filePath.getBytes())
+                            .setSize(this.getContext().filePath.getBytes().length)
+                            .build();
 
-                    // concatenate the message data array and the payload array
-                    //System.arraycopy(header, 0, data, 0, header.length);
-                    //System.arraycopy(path, 0, data, INFO_LENGTH, path.length);
-
-                    // Message send: OpenFileRO( data[0]=path, size=len(path) )
+                    // send message: OpenFileRO( data[0]=filePath, size=len(filePath) )
                     this.getContext().send(FileTransferProtocol.builder()
                             .targetSystem(systemId)
                             .targetComponent(componentId)
+                            .payload(ftp.getMessage())
                             .build());
 
                 } catch (IOException e) {
@@ -143,91 +125,126 @@ public class FtpService extends BaseService {
                 if (this.getContext().message == null) return false;
                 if (message.getPayload() instanceof FileTransferProtocol) {
 
-                    MavlinkMessage<FileTransferProtocol> mess = message;
-                    byte code = mess.getRawBytes()[CODE];
+                    FtpMessage ftp = FtpMessage.parse(message);
 
                     // Message received: ACK( session, size=4, data=len(file) )
-                    if (code == ACK) {
+                    if (ftp.getCode() == ACK && ftp.getReqcode() == OpenFileRO) {
 
-                        // FTP session id
-                        this.getContext().setSession(mess.getRawBytes()[SESS]);
+                        // set FTP session id
+                        this.getContext().session = ftp.getSess();
 
-                        // size of requested file
-                        ByteBuffer wrapped = ByteBuffer.wrap(mess.getPayload().payload());
-                        this.getContext().setSize(wrapped.getInt());
+                        // read file size (4 Byte)
+                        byte[] sizeBinary = new byte[Integer.BYTES];
+                        System.arraycopy(ftp.getData(), 0, sizeBinary, 0, 4);
 
-                        // set state for reading chunks
+                        int size = ByteBuffer
+                                .allocate(Long.BYTES)
+                                .put(sizeBinary)
+                                .order(ByteOrder.LITTLE_ENDIAN)
+                                .getInt(0);
+
+                        this.getContext().size = size;
+
+
+                        // set state for reading data chunks
                         this.getContext().setState(new FileDownloadRead(this.getContext()));
                     }
-                    else if (code == NAK) {
+                    else if (ftp.getCode() == NAK) {
                         // TODO error handling
                     }
                 }
                 return true;
             }
+
+            @Override
+            public void timeout() throws IOException {
+                super.timeout();
+
+                // TODO restart initialization: OpenFileRO( data[0]=filePath, size=len(filePath) )
+            }
         }
 
         public class FileDownloadRead extends ServiceState<FileDownloadService> {
 
-            private ByteBuffer recData;
+            private long offset  = 0;
 
             public FileDownloadRead(FileDownloadService context) { super(context); }
 
             @Override
-            protected boolean execute() {
-                try
-                {
-                    // Wait for file chunks
-                    if (this.getContext().message == null) return false;
-                    if (message.getPayload() instanceof FileTransferProtocol){
-                        MavlinkMessage<FileTransferProtocol> mess = message;
-                        int code = mess.getRawBytes()[CODE];
+            public void enter() throws IOException {
+                super.enter();
 
-                        // Message received: ACK(session, size=len(buffer), data[0]=buffer)
-                        if (code == ACK) {
+                dataBuffer = ByteBuffer.allocate(this.getContext().size);
 
-                            // add received data to the local file buffer
-                            this.recData.put(mess.getPayload().payload());
+                // send first read file request
+                // send Message: ReadFile(session, size, offset)
+                sendMessageReadFile(0);
+            }
 
-                            // set byte offset for next chunk
-                            this.getContext().setOffset(this.recData.array().length-1);
+            @Override
+            protected boolean execute() throws IOException{
 
-                            // next chunk request
-                            byte[] data = new byte[INFO_LENGTH];
-                            data[SESS]      = (byte)this.getContext().getSession();
-                            data[SIZE]      = (byte)MAX_DATA_SIZE;
-                            data[OFFSET]    = (byte)this.getContext().getOffset();
+                // Wait for data chunks
+                if (this.getContext().message == null) return false;
+                if (message.getPayload() instanceof FileTransferProtocol){
 
-                            // send Message: ReadFile(session, size, offset)
-                            this.getContext().send(FileTransferProtocol.builder()
-                                    .targetSystem(systemId)
-                                    .targetComponent(componentId)
-                                    .payload(data)
-                                    .build());
+                    FtpMessage ftp = FtpMessage.parse(message);
+
+                    // Message received: ACK(session, size=len(buffer), data[0]=buffer)
+                    if (ftp.getCode() == ACK && ftp.getReqcode() == ReadFile) {
+
+                        // add received data to the local data buffer
+                        dataBuffer.put(ftp.getData());
+
+                        // set byte offset for next chunk
+                        offset = getContext().dataBuffer.position();
+
+                        // send Message: ReadFile(session, size, offset)
+                        sendMessageReadFile(offset);
+
+                    }
+                    else if (ftp.getCode() == NAK) {
+                        int nakError = 0xff & ftp.getData()[NAK_EROR];
+
+                        // NAK(session, size=1, data=EOF)
+                        if (nakError == EOF)
+                        {
+                            // ok no more data => work done
+                            this.getContext().setState(new FileDownloadEnd(this.getContext()));
                         }
-                        else if (code == NAK) {
-                            int nakError = mess.getPayload().payload()[NAK_EROR];
-
-                            // NAK(session, size=1, data=EOF)
-                            if (nakError == EOF)
-                            {
-                                // set the final file byte array for result
-                                this.getContext().file = this.recData.array();
-
-                                // ok no more data => work done
-                                this.getContext().setState(new FileDownloadEnd(this.getContext()));
-                            }
-                            else
-                            {
-                                // TODO error handling
-                            }
+                        else
+                        {
+                            // TODO error handling: Not Acknowledge and not end of file
+                            // resend request: ReadFile(session, size, offset) ?
                         }
                     }
-
-                } catch (IOException e) {
-                    // TODO error handling
                 }
                 return true;
+            }
+
+            @Override
+            public void timeout() throws IOException {
+                super.timeout();
+
+                // TODO resend request: ReadFile(session, size, offset)
+            }
+
+            private void sendMessageReadFile(long offset) throws IOException{
+
+                // prepare request message
+                FtpMessage ftp = new FtpMessage.Builder()
+                        .setSess(this.getContext().session)
+                        .setCode(ReadFile)
+                        .setSize(DATA_SIZE)
+                        .setOffset(offset)
+                        .build();
+
+                // send Message: ReadFile(session, size, offset)
+                this.getContext().send(FileTransferProtocol.builder()
+                        .targetSystem(systemId)
+                        .targetComponent(componentId)
+                        .payload(ftp.getMessage())
+                        .build());
             }
 
         }
@@ -240,14 +257,15 @@ public class FtpService extends BaseService {
                 try {
 
                     // send Message: TerminateSession(session)
-                    byte[] data = new byte[INFO_LENGTH];
-                    data[SESS]      = (byte)this.getContext().getSession();
-                    data[CODE]      = (byte)TERM;
+                    FtpMessage ftp = new FtpMessage.Builder()
+                            .setSess(this.getContext().session)
+                            .setCode(TERM)
+                            .build();
 
                     this.getContext().send(FileTransferProtocol.builder()
                             .targetSystem(systemId)
                             .targetComponent(componentId)
-                            .payload(data)
+                            .payload(ftp.getMessage())
                             .build());
 
                 } catch (IOException e) {
@@ -261,22 +279,35 @@ public class FtpService extends BaseService {
                 // Message received: ACK( )
                 if (this.getContext().message == null) return false;
                 if (message.getPayload() instanceof FileTransferProtocol) {
-                    MavlinkMessage<FileTransferProtocol> mess = message;
-                    int code = mess.getRawBytes()[CODE];
-                    int nakError = mess.getPayload().payload()[CODE];
-                    if (code == ACK) {
-                        this.getContext().exit(file);
+                    FtpMessage ftp = FtpMessage.parse(message);
+
+                    if (ftp.getCode() == ACK && ftp.getReqcode() == TERM) {
+                        this.getContext().exit(getContext().dataBuffer.array());
                     }
                     else {
                         // TODO error handling
                     }
                 }
-
                 return true;
             }
 
+            @Override
+            public void timeout() throws IOException {
+                super.timeout();
 
+                // TODO resend request: TerminateSession(session)
+            }
+        }
+    }
+
+    /**
+     * DeleteFileService
+     */
+    private class DeleteFileService extends BaseMicroService<Boolean> {
+        public DeleteFileService(MavlinkConnection connection, String filePath) throws IOException {
+            super(connection);
         }
 
+        // TODO DeleteFileService states
     }
 }

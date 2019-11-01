@@ -10,13 +10,15 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.SocketException;
 import java.net.UnknownHostException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeoutException;
-
 
 public class FtpServiceTest {
 
@@ -27,8 +29,7 @@ public class FtpServiceTest {
     public void tearUp() throws Exception {
        mavlinkBridge.connect();
 
-        MavlinkConfig config = new MavlinkConfig
-                .Builder(1, mavlinkBridge)
+        MavlinkConfig config = new MavlinkConfig.Builder(1, mavlinkBridge)
                 .setTimeout(30000)
                 .setSystemId(1)
                 .setComponentId(1)
@@ -36,6 +37,9 @@ public class FtpServiceTest {
 
         master = new MavlinkMaster(config);
         master.connect();
+
+
+
     }
 
     @After
@@ -46,9 +50,15 @@ public class FtpServiceTest {
     @Test
     public void ftpDownloadServiceTest() throws Exception{
 
-        CompletableFuture compf = master.getFtpService().downloadFile("/test/test.txt")
+        CompletableFuture compf = master.getFtpService().downloadFile("/Users/simon/heartbeat.txt")
                 .thenAccept((a) -> {
-                    Assert.assertNull(a);
+                    try (FileOutputStream fos = new FileOutputStream("/Users/simon/Desktop/heartbeat")) {
+                        fos.write(a);
+                        //fos.close(); There is no more need for this line since you had created the instance of "fos" inside the try. And this will automatically close the OutputStream
+                    }
+                    catch (Exception e){
+
+                    }
                 })
                 .exceptionally(throwable -> {
                     Assert.fail(throwable.toString());

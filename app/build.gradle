@@ -71,10 +71,10 @@ dependencies {
 
     //implementation 'io.reactivex.rxjava3:rxjava:3.0.0-RC3'
     //implementation name: 'mavlink-1.1.5'
-    //implementation files('libs/mavlink-1.1.5.jar')
-    //implementation files('libs/mavlink-protocol-1.1.5.jar')
+    implementation files('libs/mavlink-1.1.5.jar')
+    implementation files('libs/mavlink-protocol-1.1.5.jar')
 
-    implementation 'io.dronefleet.mavlink:mavlink:1.1.5'
+    //implementation 'io.dronefleet.mavlink:mavlink:1.1.5'
 
 
     implementation "io.grpc:grpc-okhttp:${grpcVersion}"
