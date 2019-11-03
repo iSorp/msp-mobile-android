@@ -39,9 +39,12 @@ public class BaseMicroService<TResult> implements Callable<TResult> {
     }
 
     public void setState(ServiceState state) throws IOException {
-        if (state!= null)
+        if (state!= null) {
+            System.out.println("State exit : " + state.getClass());
             state.exit();
+        }
         this.state = state;
+        System.out.println("State enter : " + state.getClass());
         this.state.enter();
     }
 
@@ -76,7 +79,10 @@ public class BaseMicroService<TResult> implements Callable<TResult> {
      */
     protected MavlinkMessage takeMessage() throws InterruptedException {
         // TODO change to interrupt
-        return this.messageQueue.poll(10, TimeUnit.MILLISECONDS);
+        MavlinkMessage mess = this.messageQueue.poll(10, TimeUnit.MILLISECONDS);
+        //if (mess != null)
+        //    System.out.println("State message received : " + state.getClass());
+        return mess;
     }
 
     /**
@@ -94,13 +100,15 @@ public class BaseMicroService<TResult> implements Callable<TResult> {
             restartTimer();
             while (!exit) {
                 this.message = takeMessage();
-                if (state.execute())
+                if (state.execute()) {
                     restartTimer();
-
+                    retries = 0;
+                }
                 if (timeoutReached) {
                     if (retries < MAVLINK_MAX_RETRIES) {
                         state.timeout();
                         restartTimer();
+                        System.out.println("State timeout : " + state.getClass());
                     }
                     else {
                         throw new TimeoutException();

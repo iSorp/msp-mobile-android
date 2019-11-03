@@ -52,7 +52,7 @@ public class MissionService extends BaseService {
             }
 
             @Override
-            protected boolean execute() {
+            public boolean execute() {
                 try {
                     this.getContext().send(MissionCount.builder()
                             .missionType(MavMissionType.MAV_MISSION_TYPE_MISSION)
@@ -95,7 +95,7 @@ public class MissionService extends BaseService {
             }
 
             @Override
-            protected boolean execute() throws IOException, StateException {
+            public boolean execute() throws IOException, StateException {
 
                 if (message == null) return false;
 
@@ -161,7 +161,7 @@ public class MissionService extends BaseService {
             }
 
             @Override
-            protected boolean execute() {
+            public boolean execute() {
                 return true;
             }
         }

@@ -33,12 +33,11 @@ public class HeartbeatService extends BaseService {
             }
 
             @Override
-            protected boolean execute() {
+            public boolean execute() {
 
                 if (getContext().message == null) return false;
 
                 if (getContext().message.getPayload() instanceof Heartbeat) {
-                    System.out.println("Heartbeat service : received Heartbeat");
                     this.getContext().exit(true);
                 }
                 return true;
@@ -52,7 +51,6 @@ public class HeartbeatService extends BaseService {
                         .mavlinkVersion(3)
                         .build());
 
-                System.out.println("Heartbeat service : send Hearbeat");
             }
 
         }));

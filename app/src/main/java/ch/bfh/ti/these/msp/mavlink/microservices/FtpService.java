@@ -98,8 +98,9 @@ public class FtpService extends BaseService {
                     this.getContext().session   = (byte)0;
                     this.getContext().size      = (byte)0;
 
-                    // prepare request message
+                    // prepare FTP message
                     FtpMessage ftp = new FtpMessage.Builder()
+                            .setSeq(0)
                             .setCode(OpenFileRO)
                             .setData(this.getContext().filePath.getBytes())
                             .setSize(this.getContext().filePath.getBytes().length)
@@ -119,7 +120,7 @@ public class FtpService extends BaseService {
             }
 
             @Override
-            protected boolean execute() throws IOException{
+            public boolean execute() throws IOException, StateException {
 
                 // wait for Response
                 if (this.getContext().message == null) return false;
@@ -145,12 +146,11 @@ public class FtpService extends BaseService {
 
                         this.getContext().size = size;
 
-
                         // set state for reading data chunks
                         this.getContext().setState(new FileDownloadRead(this.getContext()));
                     }
                     else if (ftp.getCode() == NAK) {
-                        // TODO error handling
+                        throw new StateException(this, "NAK received: " + ftp.getNakEror());
                     }
                 }
                 return true;
@@ -160,15 +160,25 @@ public class FtpService extends BaseService {
             public void timeout() throws IOException {
                 super.timeout();
 
-                // TODO restart initialization: OpenFileRO( data[0]=filePath, size=len(filePath) )
+                // restart initialization: OpenFileRO( data[0]=filePath, size=len(filePath) )
+                this.getContext().setState(new FileDownloadInit(this.getContext()));
             }
         }
 
         public class FileDownloadRead extends ServiceState<FileDownloadService> {
 
             private long offset  = 0;
+            private int seq  = 0;
 
             public FileDownloadRead(FileDownloadService context) { super(context); }
+
+            @Override
+            public void timeout() throws IOException {
+                super.timeout();
+
+                // send Message: ReadFile(session, size, offset)
+                sendMessageReadFile(offset, seq);
+            }
 
             @Override
             public void enter() throws IOException {
@@ -176,63 +186,64 @@ public class FtpService extends BaseService {
 
                 dataBuffer = ByteBuffer.allocate(this.getContext().size);
 
-                // send first read file request
                 // send Message: ReadFile(session, size, offset)
-                sendMessageReadFile(0);
+                // sequence number starts with 0
+                sendMessageReadFile(0, seq);
             }
 
             @Override
-            protected boolean execute() throws IOException{
+            public boolean execute() throws IOException, StateException{
 
                 // Wait for data chunks
                 if (this.getContext().message == null) return false;
-                if (message.getPayload() instanceof FileTransferProtocol){
+                if (message.getPayload() instanceof FileTransferProtocol) {
 
                     FtpMessage ftp = FtpMessage.parse(message);
 
                     // Message received: ACK(session, size=len(buffer), data[0]=buffer)
                     if (ftp.getCode() == ACK && ftp.getReqcode() == ReadFile) {
 
-                        // add received data to the local data buffer
-                        dataBuffer.put(ftp.getData());
+                        // Only accept messages with the previous sent number
+                        if (ftp.getSeq() == seq) {
 
-                        // set byte offset for next chunk
-                        offset = getContext().dataBuffer.position();
+                            ++seq;
 
-                        // send Message: ReadFile(session, size, offset)
-                        sendMessageReadFile(offset);
+                            // add received data to the local data buffer
+                            dataBuffer.put(ftp.getData());
 
+                            // set byte offset for next chunk
+                            offset = getContext().dataBuffer.position();
+
+                            // send Message: ReadFile(session, size, offset)
+                            sendMessageReadFile(offset, seq);
+                        }
+                        else {
+                            // resend send Message: ReadFile(session, size, offset)
+                            sendMessageReadFile(offset, seq);
+                        }
                     }
                     else if (ftp.getCode() == NAK) {
-                        int nakError = 0xff & ftp.getData()[NAK_EROR];
 
                         // NAK(session, size=1, data=EOF)
-                        if (nakError == EOF)
+                        if (ftp.getNakEror() == EOF)
                         {
                             // ok no more data => work done
                             this.getContext().setState(new FileDownloadEnd(this.getContext()));
                         }
                         else
                         {
-                            // TODO error handling: Not Acknowledge and not end of file
-                            // resend request: ReadFile(session, size, offset) ?
+                            throw new StateException(this, "NAK received: " + ftp.getNakEror());
                         }
                     }
                 }
                 return true;
             }
 
-            @Override
-            public void timeout() throws IOException {
-                super.timeout();
-
-                // TODO resend request: ReadFile(session, size, offset)
-            }
-
-            private void sendMessageReadFile(long offset) throws IOException{
+            private void sendMessageReadFile(long offset, int seq) throws IOException{
 
                 // prepare request message
                 FtpMessage ftp = new FtpMessage.Builder()
+                        .setSeq(seq)
                         .setSess(this.getContext().session)
                         .setCode(ReadFile)
                         .setSize(DATA_SIZE)
@@ -246,35 +257,27 @@ public class FtpService extends BaseService {
                         .payload(ftp.getMessage())
                         .build());
             }
-
         }
 
         public class FileDownloadEnd extends ServiceState<FileDownloadService> {
             public FileDownloadEnd(FileDownloadService context) { super(context); }
 
             @Override
-            public void enter() throws IOException {
-                try {
+            public void timeout() throws IOException {
+                super.timeout();
 
-                    // send Message: TerminateSession(session)
-                    FtpMessage ftp = new FtpMessage.Builder()
-                            .setSess(this.getContext().session)
-                            .setCode(TERM)
-                            .build();
-
-                    this.getContext().send(FileTransferProtocol.builder()
-                            .targetSystem(systemId)
-                            .targetComponent(componentId)
-                            .payload(ftp.getMessage())
-                            .build());
-
-                } catch (IOException e) {
-                    // TODO error handling
-                }
+                // send Message: TerminateSession(session)
+                sendMessageTerminate();
             }
 
             @Override
-            protected boolean execute() throws IOException, InterruptedException, StateException {
+            public void enter() throws IOException {
+                // send Message: TerminateSession(session)
+                sendMessageTerminate();
+            }
+
+            @Override
+            public boolean execute() throws IOException, InterruptedException, StateException {
 
                 // Message received: ACK( )
                 if (this.getContext().message == null) return false;
@@ -285,17 +288,25 @@ public class FtpService extends BaseService {
                         this.getContext().exit(getContext().dataBuffer.array());
                     }
                     else {
-                        // TODO error handling
+                        throw new StateException(this, "NAK received: " + ftp.getNakEror());
                     }
                 }
                 return true;
             }
 
-            @Override
-            public void timeout() throws IOException {
-                super.timeout();
+            private void sendMessageTerminate() throws IOException{
 
-                // TODO resend request: TerminateSession(session)
+                // send Message: TerminateSession(session)
+                FtpMessage ftp = new FtpMessage.Builder()
+                        .setSess(this.getContext().session)
+                        .setCode(TERM)
+                        .build();
+
+                this.getContext().send(FileTransferProtocol.builder()
+                        .targetSystem(systemId)
+                        .targetComponent(componentId)
+                        .payload(ftp.getMessage())
+                        .build());
             }
         }
     }

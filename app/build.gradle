@@ -50,7 +50,7 @@ android {
         targetCompatibility JavaVersion.VERSION_1_8
     }
 }
-def grpcVersion = '1.19.0'
+
 dependencies {
     implementation 'androidx.multidex:multidex:2.0.0'
     implementation fileTree(dir: 'libs', include: ['*.jar'])
@@ -75,12 +75,6 @@ dependencies {
     implementation files('libs/mavlink-protocol-1.1.5.jar')
 
     //implementation 'io.dronefleet.mavlink:mavlink:1.1.5'
-
-
-    implementation "io.grpc:grpc-okhttp:${grpcVersion}"
-    implementation "io.grpc:grpc-protobuf-lite:${grpcVersion}"
-    implementation "io.grpc:grpc-stub:${grpcVersion}"
-    implementation 'org.slf4j:slf4j-api:1.7.25'
     
     implementation 'com.mapbox.mapboxsdk:mapbox-android-plugin-annotation-v8:0.7.0'
     implementation 'com.mapbox.mapboxsdk:mapbox-android-sdk:8.2.1'

@@ -24,7 +24,7 @@ public abstract class ServiceState<T extends BaseMicroService> {
      * Abstract execution function for the service.
      * @throws IOException
      */
-    protected abstract boolean execute() throws IOException, InterruptedException, StateException;
+    public abstract boolean execute() throws IOException, InterruptedException, StateException;
 
     public void enter() throws IOException {}
     public void exit() throws IOException {}

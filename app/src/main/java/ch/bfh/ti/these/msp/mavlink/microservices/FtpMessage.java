@@ -34,7 +34,15 @@ public class FtpMessage {
 
     // NAK Error Information
     public final static int FAIL        = 0x01;
+    public final static int FAILERNO    = 0x02;
+    public final static int INVDSIZE    = 0x03;
+    public final static int INVSESS     = 0x04;
+    public final static int NOSESS      = 0x05;
     public final static int EOF         = 0x06;
+    public final static int UNKNOWN     = 0x07;
+    public final static int EXISTS      = 0x08;
+    public final static int PROTECTED   = 0x09;
+    public final static int FNF         = 0x0A;
 
     // OpCodes/Command
     public final static int TERM        = 0x01;
@@ -43,8 +51,6 @@ public class FtpMessage {
 
     public final static int ACK         = 0x80;    // 128
     public final static int NAK         = 0x81;    // 129
-
-
 
 
     private int seq, sess, code, size, reqcode, burst, pad;
@@ -123,6 +129,15 @@ public class FtpMessage {
         return offset;
     }
 
+    public int getNakEror() {
+
+        if (data.length > 0)
+            return 0xff & data[NAK_EROR];
+        return 0;
+
+    }
+
+
     public byte[] getData() {
         return data;
     }
@@ -135,13 +150,18 @@ public class FtpMessage {
         byte[] data = new byte[0xff & pl[SIZE]];
         System.arraycopy(pl, DATA, data, 0, 0xff & pl[SIZE]);
 
+        // create sequence value from 2 Bytes
+        byte[] seqBinary = new byte[Integer.BYTES];
+        System.arraycopy(pl, SEQ, seqBinary, 0, 2);
+        int seq = ByteBuffer.allocate(Long.BYTES).put(seqBinary).order(ByteOrder.LITTLE_ENDIAN).getInt(0);
+
         // create offset value from 4 Bytes
         byte[] offsBinary = new byte[Long.BYTES];
         System.arraycopy(pl, DATA, offsBinary, 0, 4);
         long offs = ByteBuffer.allocate(Long.BYTES).put(offsBinary).order(ByteOrder.LITTLE_ENDIAN).getLong(0);
 
         return new FtpMessage.Builder()
-                .setSeq(0xffff & pl[SEQ+1]*256+pl[SEQ])
+                .setSeq(seq)
                 .setSess( 0xff & pl[SESS])
                 .setCode(0xff & pl[CODE])
                 .setSize(0xff & pl[SIZE])
