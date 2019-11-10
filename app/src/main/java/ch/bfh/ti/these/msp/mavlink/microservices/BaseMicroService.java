@@ -57,6 +57,9 @@ public class BaseMicroService<TResult> implements Callable<TResult> {
         this.exit = true;
     }
 
+    public void setResult(TResult result) {
+        this.result = result;
+    }
 
     public void addListener(MavlinkMaster.MavlinkListener listener) {
         this.listener = listener;

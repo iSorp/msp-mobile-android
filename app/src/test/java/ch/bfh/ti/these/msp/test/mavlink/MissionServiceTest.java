@@ -61,4 +61,19 @@ public class MissionServiceTest {
         // Wait for completion
         compf.get();
     }
+
+    @Test
+    public void missionStartTest() throws Exception{
+
+        CompletableFuture compf = master.getMissionService().startMission()
+                .thenAccept((a) -> {
+                    //Assert.assertNull(a);
+                })
+                .exceptionally(throwable -> {
+                    Assert.fail(throwable.toString());
+                    return null;
+                });
+        // Wait for completion
+        compf.get();
+    }
 }

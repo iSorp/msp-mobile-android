@@ -4,28 +4,24 @@ import ch.bfh.ti.these.msp.mavlink.MavlinkConfig;
 import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
 import ch.bfh.ti.these.msp.mavlink.MavlinkMessageListener;
 import ch.bfh.ti.these.msp.mavlink.MavlinkUdpBridge;
-
 import io.dronefleet.mavlink.MavlinkMessage;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.io.FileOutputStream;
-
 import java.util.concurrent.CompletableFuture;
 
-
-public class FtpServiceTest {
-
+public class ReceiverTest {
     private MavlinkUdpBridge mavlinkBridge = new MavlinkUdpBridge();
     private MavlinkMaster master;
 
     @Before
     public void tearUp() throws Exception {
-       mavlinkBridge.connect();
+        mavlinkBridge.connect();
 
-        MavlinkConfig config = new MavlinkConfig.Builder(1, mavlinkBridge)
+        MavlinkConfig config = new MavlinkConfig
+                .Builder(1, mavlinkBridge)
                 .setTimeout(30000)
                 .setSystemId(1)
                 .setComponentId(1)
@@ -41,22 +37,17 @@ public class FtpServiceTest {
     }
 
     @Test
-    public void ftpDownloadServiceTest() throws Exception{
+    public void mavlinkReceiverTest() throws Exception {
 
-        CompletableFuture compf = master.getFtpService().downloadFile("/home/simon/Develop/controller/CMakeLists.txt")
-                .thenAccept((a) -> {
-                   try (FileOutputStream fos = new FileOutputStream("tesr4.txt")) {
-                        fos.write(a);
-                    }
-                    catch (Exception e){
+        master.addMessageListener(new MavlinkMessageListener() {
+            @Override
+            public void messageReceived(MavlinkMessage message) {
+                System.out.println(message.toString());
+            }
+        });
 
-                    }
-                })
-                .exceptionally(throwable -> {
-                    Assert.fail(throwable.toString());
-                    return null;
-                });
-        // Wait for completion
-        compf.get();
+        while (true) {
+            Thread.sleep(100);
+        }
     }
 }

@@ -10,6 +10,8 @@ import io.dronefleet.mavlink.common.*;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 
+import static io.dronefleet.mavlink.common.MavCmd.*;
+
 /**
  * Defines microservices for mission management, such as mission upload or mission download.
  */
@@ -26,6 +28,24 @@ public class MissionService extends BaseService {
      */
     public CompletableFuture uploadMission(Mission mission) throws IOException {
         return runAsync(new MissionUploadService(this.connection, mission));
+    }
+
+    /**
+     * Sends a mission start command
+     * @return
+     * @throws IOException
+     */
+    public CompletableFuture startMission() throws IOException {
+        return runAsync(new CommandIntSendService(this.connection, MAV_CMD_MISSION_START));
+    }
+
+    /**
+     * Sends a mission pause command
+     * @return
+     * @throws IOException
+     */
+    public CompletableFuture pauseMission() throws IOException {
+        return runAsync(new CommandIntSendService(this.connection, MAV_CMD_DO_PAUSE_CONTINUE));
     }
 
     /**
@@ -52,21 +72,18 @@ public class MissionService extends BaseService {
             }
 
             @Override
-            public boolean execute() {
-                try {
-                    this.getContext().send(MissionCount.builder()
-                            .missionType(MavMissionType.MAV_MISSION_TYPE_MISSION)
-                            .targetSystem(systemId)
-                            .targetComponent(componentId)
-                            .count(getContext().getMission().getWayPoints().size())
-                            .build());
+            public boolean execute() throws IOException {
 
-                    System.out.println("Mission service : send MissionCount");
+                this.getContext().send(MissionCount.builder()
+                        .missionType(MavMissionType.MAV_MISSION_TYPE_MISSION)
+                        .targetSystem(systemId)
+                        .targetComponent(componentId)
+                        .count(getContext().getMission().getWayPoints().size())
+                        .build());
 
-                    this.getContext().setState(new MissionUploadItem(this.getContext()));
-                } catch (IOException e) {
-                    // TODO error handling
-                }
+                System.out.println("Mission service : send MissionCount");
+
+                this.getContext().setState(new MissionUploadItem(this.getContext()));
                 return true;
             }
         }

@@ -19,7 +19,7 @@ public class HeartbeatService extends BaseService {
     }
 
     public CompletableFuture<Boolean> ping() {
-        return runAsync(new BaseMicroService(this.connection, new ServiceState() {
+        return runAsync(new BaseMicroService<Boolean>(this.connection, new ServiceState() {
 
             @Override
             public void timeout() throws IOException {
@@ -29,6 +29,7 @@ public class HeartbeatService extends BaseService {
 
             @Override
             public void enter() throws IOException {
+                getContext().setResult(false);
                 sendHearbeat();
             }
 
