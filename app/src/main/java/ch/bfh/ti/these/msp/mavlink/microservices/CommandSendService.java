@@ -7,7 +7,7 @@ import io.dronefleet.mavlink.common.*;
 import java.io.IOException;
 
 
-abstract class CommandSendService extends BaseMicroService {
+abstract class CommandSendService extends BaseMicroService<Boolean> {
 
     private Object command;
 

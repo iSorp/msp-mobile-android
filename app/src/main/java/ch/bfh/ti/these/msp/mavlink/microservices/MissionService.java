@@ -26,8 +26,16 @@ public class MissionService extends BaseService {
      * @param mission
      * @return CompletableFuture
      */
-    public CompletableFuture uploadMission(Mission mission) throws IOException {
+    public CompletableFuture<Boolean> uploadMission(Mission mission) throws IOException {
         return runAsync(new MissionUploadService(this.connection, mission));
+    }
+
+    /**
+     * Starts an asynchronous mission clearing
+     * @return CompletableFuture
+     */
+    public CompletableFuture<Boolean> clearMission() throws IOException {
+        return runAsync(new MissionClearService(this.connection));
     }
 
     /**
@@ -35,8 +43,8 @@ public class MissionService extends BaseService {
      * @return
      * @throws IOException
      */
-    public CompletableFuture startMission() throws IOException {
-        return runAsync(new CommandIntSendService(this.connection, MAV_CMD_MISSION_START));
+    public CompletableFuture<Boolean> startMission() throws IOException {
+        return runAsync(new CommandLongSendService(this.connection, MAV_CMD_MISSION_START));
     }
 
     /**
@@ -44,14 +52,14 @@ public class MissionService extends BaseService {
      * @return
      * @throws IOException
      */
-    public CompletableFuture pauseMission() throws IOException {
+    public CompletableFuture<Boolean> pauseMission() throws IOException {
         return runAsync(new CommandIntSendService(this.connection, MAV_CMD_DO_PAUSE_CONTINUE));
     }
 
     /**
      * Microservice for Mission upload
      */
-    private class MissionUploadService extends BaseMicroService {
+    private class MissionUploadService extends BaseMicroService<Boolean> {
 
         Mission mission;
 
@@ -173,7 +181,7 @@ public class MissionService extends BaseService {
 
             @Override
             public void enter() throws IOException{
-                getContext().exit(null);
+                getContext().exit(true);
                 this.getContext().setState(new MissionUploadInit(this.getContext()));
             }
 
@@ -183,6 +191,52 @@ public class MissionService extends BaseService {
             }
         }
 
+    }
+
+    /**
+     * Microservice for Mission upload
+     */
+    private class MissionClearService extends BaseMicroService<Boolean> {
+
+        Mission mission;
+
+        public MissionClearService(MavlinkConnection connection) throws IOException {
+            super(connection);
+            this.mission = mission;
+            this.state = new MissionClear(this);
+        }
+
+        public class MissionClear extends ServiceState<MissionClearService> {
+
+            public MissionClear(MissionClearService context) {
+                super(context);
+            }
+
+            @Override
+            public void enter()  throws IOException {
+                this.getContext().send(MissionClearAll.builder()
+                        .missionType(MavMissionType.MAV_MISSION_TYPE_MISSION)
+                        .targetSystem(systemId)
+                        .targetComponent(componentId)
+                        .build());
+            }
+
+            @Override
+            public boolean execute() throws IOException, StateException {
+                if (message == null) return false;
+
+                if (message.getPayload() instanceof MissionAck) {
+                    System.out.println("MissionClearService: received MissionAck");
+
+                    MavlinkMessage<MissionAck> mess = (MavlinkMessage<MissionAck>) message;
+                    if (mess.getPayload().type().entry() == MavMissionResult.MAV_MISSION_ACCEPTED)
+                        this.getContext().exit(true);
+                    else
+                        throw new StateException(getContext().state, mess.getPayload().type().toString());
+                }
+                return true;
+            }
+        }
     }
 
 }
