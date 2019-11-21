@@ -52,7 +52,7 @@ public class MissionServiceTest {
 
         CompletableFuture compf = master.getMissionService().uploadMission(mission)
                 .thenAccept((a) -> {
-                    Assert.assertNull(a);
+                    Assert.assertEquals(a, true);
                 })
                 .exceptionally(throwable -> {
                     Assert.fail(throwable.toString());

@@ -53,7 +53,7 @@ public class MissionService extends BaseService {
      * @throws IOException
      */
     public CompletableFuture<Boolean> pauseMission() throws IOException {
-        return runAsync(new CommandIntSendService(this.connection, MAV_CMD_DO_PAUSE_CONTINUE));
+        return runAsync(new CommandLongSendService(this.connection, MAV_CMD_DO_PAUSE_CONTINUE));
     }
 
     /**

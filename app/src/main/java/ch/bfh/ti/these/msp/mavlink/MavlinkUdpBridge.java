@@ -10,7 +10,6 @@ import static ch.bfh.ti.these.msp.util.Definitions.MAVLINK_TEST_HOST;
 
 public class MavlinkUdpBridge implements MavlinkBridge {
 
-    LinkedList<Byte> bf = new LinkedList<>();
     private byte[] buffer = new byte[2048];
     private int pos = -1;
     private int length = 0;

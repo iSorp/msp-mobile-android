@@ -1,6 +1,7 @@
 package ch.bfh.ti.these.msp.test.mavlink;
 
 
+import ch.bfh.ti.these.msp.dji.MavlinkAirlinkBridge;
 import ch.bfh.ti.these.msp.mavlink.MavlinkConfig;
 import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
 import ch.bfh.ti.these.msp.mavlink.MavlinkUdpBridge;
@@ -12,6 +13,9 @@ import org.junit.Test;
 
 import java.net.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadFactory;
 
 public class HeartbeatServiceTest {
 
@@ -49,7 +53,6 @@ public class HeartbeatServiceTest {
                     Assert.fail(throwable.toString());
                     return null;
                 });
-
 
             // Wait for completion
             compf.get();

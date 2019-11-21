@@ -43,9 +43,9 @@ public class FtpServiceTest {
     @Test
     public void ftpDownloadServiceTest() throws Exception{
 
-        CompletableFuture compf = master.getFtpService().downloadFile("/home/simon/Develop/controller/CMakeLists.txt")
+        CompletableFuture compf = master.getFtpService().downloadFile("/home/simon/Develop/msp-onboard/wp0data.json")
                 .thenAccept((a) -> {
-                   try (FileOutputStream fos = new FileOutputStream("tesr4.txt")) {
+                   try (FileOutputStream fos = new FileOutputStream("wp0data.json")) {
                         fos.write(a);
                     }
                     catch (Exception e){
