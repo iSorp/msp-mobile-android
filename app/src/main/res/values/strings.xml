@@ -1,3 +1,9 @@
 <resources>
     <string name="app_name">msp3</string>
+    <string name="textview_mission">Mission</string>
+    <string name="btn_start_mission">Start Mission</string>
+    <string name="status">Status</string>
+    <string name="takeOff">Take Off</string>
+    <string name="returnToOrigin">Return To Origin</string>
+    <string name="landing">Landing</string>
 </resources>

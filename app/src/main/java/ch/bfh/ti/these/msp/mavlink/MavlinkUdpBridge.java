@@ -57,7 +57,9 @@ public class MavlinkUdpBridge implements MavlinkBridge {
                     length = packet.getLength();
                     if (length > 0)
                         pos = 0;
-                } catch (IOException e) { }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
             }
 
 
@@ -65,7 +67,7 @@ public class MavlinkUdpBridge implements MavlinkBridge {
             {
                 ret = 0xff;
                 ret = ret & (buffer[pos++]);
-                //System.out.println(String.format("%02x", ret));
+                System.out.println(String.format("%02x", ret));
             }
             else{
                 pos = -1;

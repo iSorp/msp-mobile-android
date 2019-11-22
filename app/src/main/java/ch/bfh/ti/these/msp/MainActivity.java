@@ -221,7 +221,7 @@ public class MainActivity extends AppCompatActivity {
     private void mavlinkSendMission() {
 
         try {
-            if (this.mavlinkMaster == null)
+            /*if (this.mavlinkMaster == null)
                 this.mavlinkMaster = createMavlinkMaster();
 
 
@@ -241,7 +241,7 @@ public class MainActivity extends AppCompatActivity {
                     .exceptionally(throwable -> {
                         System.out.println("");
                         return null;
-                    });
+                    });*/
         }
         catch (Exception e) {
             this.runOnUiThread(new Runnable() {
@@ -256,11 +256,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
 
-    private MavlinkMaster createMavlinkMaster() throws Exception {
-        /*MavlinkConfig config = new MavlinkConfig
+    /*private MavlinkMaster createMavlinkMaster() throws Exception {
+        MavlinkConfig config = new MavlinkConfig
                 .Builder(1, new MavlinkAirlinkBridge())
                 .setTimeout(5000)
-                .build();*/
+                .build();
 
         MavlinkConfig config = createMavlinkTCPWrapper();
         return new MavlinkMaster(config);
@@ -292,7 +292,7 @@ public class MainActivity extends AppCompatActivity {
                 .build();
 
         return config;
-    }
+    }*/
 
 
 

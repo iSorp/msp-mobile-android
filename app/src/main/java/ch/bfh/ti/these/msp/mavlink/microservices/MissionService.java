@@ -1,6 +1,8 @@
 package ch.bfh.ti.these.msp.mavlink.microservices;
 
 import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
+import ch.bfh.ti.these.msp.mavlink.model.MavlinkMission;
+import ch.bfh.ti.these.msp.mavlink.model.MavlinkMissionUploadItem;
 import ch.bfh.ti.these.msp.models.Mission;
 import ch.bfh.ti.these.msp.models.WayPoint;
 import io.dronefleet.mavlink.MavlinkConnection;
@@ -26,7 +28,7 @@ public class MissionService extends BaseService {
      * @param mission
      * @return CompletableFuture
      */
-    public CompletableFuture<Boolean> uploadMission(Mission mission) throws IOException {
+    public CompletableFuture<Boolean> uploadMission(MavlinkMission mission) throws IOException {
         return runAsync(new MissionUploadService(this.connection, mission));
     }
 
@@ -61,15 +63,15 @@ public class MissionService extends BaseService {
      */
     private class MissionUploadService extends BaseMicroService<Boolean> {
 
-        Mission mission;
+        MavlinkMission mission;
 
-        public MissionUploadService(MavlinkConnection connection, Mission mission) throws IOException {
+        public MissionUploadService(MavlinkConnection connection, MavlinkMission mission) throws IOException {
             super(connection);
             this.mission = mission;
             this.state = new MissionUploadInit(this);
         }
 
-        public Mission getMission() {
+        public MavlinkMission getMission() {
             return this.mission;
         }
 
@@ -86,7 +88,7 @@ public class MissionService extends BaseService {
                         .missionType(MavMissionType.MAV_MISSION_TYPE_MISSION)
                         .targetSystem(systemId)
                         .targetComponent(componentId)
-                        .count(getContext().getMission().getWayPoints().size())
+                        .count(getContext().getMission().size())
                         .build());
 
                 System.out.println("Mission service : send MissionCount");
@@ -132,7 +134,7 @@ public class MissionService extends BaseService {
                     System.out.println("Mission service : received MissionRequest = " + sequence);
 
                     // throw error on wrong sequence number
-                    if (sequence > getContext().getMission().getWayPoints().size()) {
+                    if (sequence > getContext().getMission().size()) {
                         throw new StateException(this, "Wrong sequence number");
                     }
 
@@ -159,12 +161,17 @@ public class MissionService extends BaseService {
             private void handleMissionItem() throws IOException {
 
                 // upload next item
-                WayPoint p = getContext().getMission().getWayPoints().get(sequence-1);
+                MavlinkMissionUploadItem i = getContext().getMission().get(sequence-1);
                 getContext().send(MissionItem.builder()
                         .missionType(MavMissionType.MAV_MISSION_TYPE_MISSION)
-                        .x(p.getLatitude())
-                        .y(p.getLongitude())
-                        .z(p.getAltitude())
+                        .x(i.getX())
+                        .y(i.getY())
+                        .z(i.getZ())
+                        .command(i.getCommand())
+                        .param1(i.getParam1())
+                        .param2(i.getParam2())
+                        .param3(i.getParam3())
+                        .param4(i.getParam4())
                         .frame(MavFrame.MAV_FRAME_GLOBAL)
                         /* TODO action of the waypoint  .command(MavCmd.MAV_CMD_ACCELCAL_VEHICLE_POS)*/
                         .seq(sequence)
