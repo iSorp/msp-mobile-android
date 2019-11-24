@@ -5,9 +5,13 @@
         xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:context=".SelectMissionActivity"
+        tools:context=".MissionActivity"
         android:orientation="vertical">
 
+    <include
+            layout="@layout/toolbar_main"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:id="@+id/toolbar_main"/>
     <TextView
             android:text="@string/textview_mission"
             android:layout_width="wrap_content"
@@ -19,12 +23,22 @@
             android:layout_height="wrap_content"
             android:id="@+id/spinner"/>
 
+    <FrameLayout
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1">
+    </FrameLayout>
+
     <Button
-            android:text="@string/btn_start_mission"
+            android:text="@string/btn_upload_mission"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/btnStart"/>
+            android:id="@+id/btnUpload"/>
 
+    <Button
+            android:text="@string/btn_download_mission"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" android:id="@+id/btnDownload"/>
     <ProgressBar
             style="?android:attr/progressBarStyle"
             android:layout_width="match_parent"

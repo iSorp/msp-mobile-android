@@ -4,9 +4,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.*;
-import java.util.LinkedList;
 
-import static ch.bfh.ti.these.msp.util.Definitions.MAVLINK_TEST_HOST;
 
 public class MavlinkUdpBridge implements MavlinkBridge {
 
@@ -14,25 +12,41 @@ public class MavlinkUdpBridge implements MavlinkBridge {
     private int pos = -1;
     private int length = 0;
 
+    private boolean connected = false;
+
     private InetAddress ipAddress;
     private int sourcePort = 5000;
     private int targetPort = 5001;
+    private String targetAddress = "127.0.0.1";
     private DatagramSocket server;
     private DatagramSocket client;
 
-    public MavlinkUdpBridge() { }
+
+    public MavlinkUdpBridge(int sourcePort, String targetAddress, int targetPort) {
+        this.sourcePort = sourcePort;
+        this.targetAddress = targetAddress;
+        this.targetPort = targetPort;
+    }
 
     public void connect() throws SocketException, UnknownHostException {
-
-        ipAddress = InetAddress.getByName(MAVLINK_TEST_HOST);
-        server = new DatagramSocket(sourcePort);
-        client = new DatagramSocket();
-        //server.setSoTimeout(10);
+        synchronized (this) {
+            if (!connected) {
+                ipAddress = InetAddress.getByName(targetAddress);
+                server = new DatagramSocket(sourcePort);
+                client = new DatagramSocket();
+                connected = true;
+            }
+        }
     }
 
     public void disconnect() {
-        server.close();
-        client.close();
+        synchronized (this) {
+            if (server != null)
+                server.close();
+            if (client != null)
+                client.close();
+            connected = false;
+        }
     }
 
 
@@ -49,30 +63,33 @@ public class MavlinkUdpBridge implements MavlinkBridge {
     private InputStream is = new InputStream() {
         @Override
         public int read() throws IOException {
-            int ret = -1;
-            if (pos < 0) {
-                DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
-                try {
-                    server.receive(packet);
-                    length = packet.getLength();
-                    if (length > 0)
-                        pos = 0;
-                } catch (IOException e) {
-                    e.printStackTrace();
+            synchronized (this) {
+                if (!connected) return -1;
+
+                int ret = -1;
+                if (pos < 0) {
+                    DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
+                    try {
+                        server.receive(packet);
+                        length = packet.getLength();
+                        if (length > 0)
+                            pos = 0;
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
                 }
-            }
 
-
-            if (pos < length && length > 0)
-            {
-                ret = 0xff;
-                ret = ret & (buffer[pos++]);
-                System.out.println(String.format("%02x", ret));
+                if (pos < length && length > 0)
+                {
+                    ret = 0xff;
+                    ret = ret & (buffer[pos++]);
+                    //System.out.println(String.format("%02x", ret));
+                }
+                else{
+                    pos = -1;
+                }
+                return ret;
             }
-            else{
-                pos = -1;
-            }
-            return ret;
         }
     };
 
@@ -82,8 +99,11 @@ public class MavlinkUdpBridge implements MavlinkBridge {
 
         @Override
         public void write(byte b[]) throws IOException {
-            DatagramPacket sendPacket = new DatagramPacket(b, b.length, ipAddress, targetPort);
-            client.send(sendPacket);
+            if (connected){
+                DatagramPacket sendPacket = new DatagramPacket(b, b.length, ipAddress, targetPort);
+                client.send(sendPacket);
+            }
+
         }
     };
 }

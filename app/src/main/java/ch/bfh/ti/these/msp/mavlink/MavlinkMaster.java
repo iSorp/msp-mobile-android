@@ -19,12 +19,12 @@ import io.dronefleet.mavlink.common.Heartbeat;
 
 public class MavlinkMaster {
 
-    private boolean connected;
+    private boolean connected, listenerExit;
     private MavlinkConnection connection;
     private MavlinkConfig config;
     private MavlinkListener listener = new MavlinkListener();
     private ArrayList<MavlinkMessageListener> messageListeners = new ArrayList<>();
-
+    private Thread listenerThread;
     private MissionService missionService;
     private FtpService ftpService;
     private HeartbeatService heartbeatService;
@@ -37,9 +37,6 @@ public class MavlinkMaster {
         connection = MavlinkConnection.create(
                 config.getCommWrapper().getInputStream(),
                 config.getCommWrapper().getOutputStream());
-
-        // Start mavlink message listener
-        this.sheredExecutor.submit(listener);
 
         // Add mavlink connection handler
         this.addMessageListener(connectionHandler);
@@ -58,7 +55,15 @@ public class MavlinkMaster {
      * @throws TimeoutException
      * @throws IOException
      */
-    public boolean connect() throws InterruptedException, ExecutionException, TimeoutException, IOException {
+    public boolean connect() throws Exception {
+
+        config.getCommWrapper().connect();
+
+        // Start mavlink message listener
+        listenerExit = false;
+        listenerThread = new Thread(listener);
+        listenerThread.setDaemon(true);
+        listenerThread.start();
 
         CompletableFuture<Boolean> f = getHeartbeatService().ping()
                 .exceptionally(throwable -> {
@@ -67,8 +72,15 @@ public class MavlinkMaster {
         return f.get(config.getTimeout(), TimeUnit.MILLISECONDS);
     }
 
-    public void dispose() {
-        sheredExecutor.shutdown();
+    public void dispose() throws Exception {
+        this.config.getCommWrapper().disconnect();
+
+        if (listenerThread != null) {
+            listenerExit = true;
+            listenerThread.interrupt();
+            listenerThread.join();
+        }
+
         connection = null;
         connected = false;
     }
@@ -79,6 +91,10 @@ public class MavlinkMaster {
 
     public void removeMessageListener(MavlinkMessageListener listener) {
         messageListeners.remove(listener);
+    }
+
+    public boolean isConnected() {
+        return connected;
     }
 
     // region services
@@ -114,10 +130,12 @@ public class MavlinkMaster {
         public void run() {
 
             while (connection == null){
-                try{ Thread.sleep(100);}catch (InterruptedException e){}
+                try{ Thread.sleep(100);}catch (InterruptedException e){
+                    e.printStackTrace();
+                }
             }
 
-            while (true) {
+            while (!listenerExit) {
                 try {
                     MavlinkMessage message;
                     while ((message = connection.next()) != null) {
@@ -141,15 +159,6 @@ public class MavlinkMaster {
             }
         }
     };
-
-    private ExecutorService sheredExecutor = Executors.newSingleThreadExecutor(
-            new ThreadFactory() {
-                public Thread newThread(Runnable r) {
-                    Thread t = Executors.defaultThreadFactory().newThread(r);
-                    t.setDaemon(true);
-                    return t;
-                }
-            });
 
     /**
      * Handles the connection status of the configured system component

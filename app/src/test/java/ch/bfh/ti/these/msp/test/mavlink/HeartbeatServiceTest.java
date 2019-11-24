@@ -6,6 +6,7 @@ import ch.bfh.ti.these.msp.mavlink.MavlinkConfig;
 import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
 import ch.bfh.ti.these.msp.mavlink.MavlinkUdpBridge;
 
+import ch.bfh.ti.these.msp.util.Definitions;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -19,7 +20,7 @@ import java.util.concurrent.ThreadFactory;
 
 public class HeartbeatServiceTest {
 
-    private MavlinkUdpBridge mavlinkBridge = new MavlinkUdpBridge();
+    private MavlinkUdpBridge mavlinkBridge = new MavlinkUdpBridge(Definitions.MAVLINK_TEST_SOURCE_PORT, Definitions.MAVLINK_TEST_TARGET, Definitions.MAVLINK_TEST_TARGET_PORT);
     private MavlinkMaster master;
 
     @Before
@@ -27,7 +28,7 @@ public class HeartbeatServiceTest {
         mavlinkBridge.connect();
 
         MavlinkConfig config = new MavlinkConfig
-                .Builder(1, mavlinkBridge)
+                .Builder(mavlinkBridge)
                 .setTimeout(30000)
                 .setSystemId(1)
                 .setComponentId(1)
@@ -39,7 +40,12 @@ public class HeartbeatServiceTest {
 
     @After
     public void tearDown() {
-        mavlinkBridge.disconnect();
+        try {
+            master.dispose();
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     @Test

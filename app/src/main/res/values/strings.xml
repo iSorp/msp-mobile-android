@@ -1,7 +1,19 @@
 <resources>
-    <string name="app_name">msp3</string>
+    <string name="app_name">Mobile Sensor Platform</string>
     <string name="textview_mission">Mission</string>
-    <string name="btn_start_mission">Start Mission</string>
+
+    <string name="btn_settings">Einstellungen</string>
+    <string name="btn_mission">Missionen</string>
+    <string name="btn_command">Kommandos</string>
+    <string name="btn_live_view">Live Bild</string>
+    <string name="btn_cancel">Abbrechen</string>
+    <string name="btn_upload_mission">Mission übertragen</string>
+    <string name="btn_download_mission">Mission herunterladen</string>
+    <string name="btn_start_mission">Start</string>
+    <string name="btn_pause_mission">Pause</string>
+
+
+    <string name="mavlink_status">Mavlinkstatus</string>
     <string name="status">Status</string>
     <string name="takeOff">Take Off</string>
     <string name="returnToOrigin">Return To Origin</string>

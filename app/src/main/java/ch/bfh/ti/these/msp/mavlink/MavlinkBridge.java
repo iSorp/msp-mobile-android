@@ -6,4 +6,7 @@ import java.io.OutputStream;
 public interface MavlinkBridge {
     InputStream getInputStream();
     OutputStream getOutputStream();
+
+    void connect() throws Exception;
+    void disconnect();
 }

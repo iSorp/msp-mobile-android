@@ -42,16 +42,26 @@ public class MavlinkConfig {
         private int timeout = 5000;
         private MavlinkBridge mavlinkCommWrapper;
 
-        public Builder(int systemId, MavlinkBridge mavlinkCommWrapper) {
+        public Builder(MavlinkBridge mavlinkCommWrapper) {
             this.systemId = systemId;
             this.mavlinkCommWrapper = mavlinkCommWrapper;
         }
 
+        /**
+         * Target system id
+         * @param systemId
+         * @return
+         */
         public Builder setSystemId(int systemId) {
             this.systemId = systemId;
             return this;
         }
 
+        /**
+         * Target component id
+         * @param componentId
+         * @return
+         */
         public Builder setComponentId(int componentId) {
             this.componentId = componentId;
             return this;
