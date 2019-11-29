@@ -42,10 +42,16 @@ public class MavlinkUdpBridge implements MavlinkBridge {
     public void disconnect() {
         synchronized (this) {
             connected = false;
-            if (server != null)
+            if (server != null){
+                server.disconnect();
                 server.close();
-            if (client != null)
+            }
+
+            if (client != null){
+                server.disconnect();
                 client.close();
+            }
+
         }
     }
 

@@ -100,7 +100,7 @@ public class MissionService extends BaseService {
 
         public class MissionUploadItem extends ServiceState<MissionUploadService> {
 
-            int sequence = 1;
+            int sequence = 0;
 
             public MissionUploadItem(MissionUploadService context) {
                 super(context);
@@ -110,7 +110,7 @@ public class MissionService extends BaseService {
             public void timeout() throws IOException {
                 super.timeout();
 
-                if (sequence <= 1)
+                if (sequence <= 0)
                 {
                     // resend MissionCount request
                     this.getContext().setState(new MissionUploadInit(this.getContext()));
@@ -161,7 +161,7 @@ public class MissionService extends BaseService {
             private void handleMissionItem() throws IOException {
 
                 // upload next item
-                MavlinkMissionUploadItem i = getContext().getMission().get(sequence-1);
+                MavlinkMissionUploadItem i = getContext().getMission().get(sequence);
                 getContext().send(MissionItem.builder()
                         .missionType(MavMissionType.MAV_MISSION_TYPE_MISSION)
                         .x(i.getX())
