@@ -41,11 +41,11 @@ public class MavlinkUdpBridge implements MavlinkBridge {
 
     public void disconnect() {
         synchronized (this) {
+            connected = false;
             if (server != null)
                 server.close();
             if (client != null)
                 client.close();
-            connected = false;
         }
     }
 
@@ -63,10 +63,10 @@ public class MavlinkUdpBridge implements MavlinkBridge {
     private InputStream is = new InputStream() {
         @Override
         public int read() throws IOException {
-            synchronized (this) {
-                if (!connected) return -1;
+            if (!connected) return -1;
+            int ret = -1;
 
-                int ret = -1;
+            synchronized (this) {
                 if (pos < 0) {
                     DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
                     try {
@@ -79,7 +79,7 @@ public class MavlinkUdpBridge implements MavlinkBridge {
                     }
                 }
 
-                if (pos < length && length > 0)
+                if (pos >= 0 && pos < length && length > 0)
                 {
                     ret = 0xff;
                     ret = ret & (buffer[pos++]);
@@ -88,8 +88,8 @@ public class MavlinkUdpBridge implements MavlinkBridge {
                 else{
                     pos = -1;
                 }
-                return ret;
             }
+            return ret;
         }
     };
 

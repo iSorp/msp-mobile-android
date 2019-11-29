@@ -8,5 +8,5 @@ public interface MavlinkBridge {
     OutputStream getOutputStream();
 
     void connect() throws Exception;
-    void disconnect();
+    void disconnect() throws Exception;
 }

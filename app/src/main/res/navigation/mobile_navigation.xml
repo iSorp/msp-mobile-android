@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<navigation xmlns:android="http://schemas.android.com/apk/res/android"
+            xmlns:app="http://schemas.android.com/apk/res-auto"
+            xmlns:tools="http://schemas.android.com/tools"
+            android:id="@+id/mobile_navigation"
+            app:startDestination="@+id/nav_frag_register">
+
+    <fragment
+            android:id="@+id/nav_frag_register"
+            android:name="ch.bfh.ti.these.msp.ui.RegisterFragment"
+            android:label="">
+    </fragment>
+
+    <fragment
+            android:id="@+id/nav_frag_fpv"
+            android:name="ch.bfh.ti.these.msp.ui.FpvFragment"
+            android:label="FPV View">
+    </fragment>
+
+    <fragment
+            android:id="@+id/nav_frag_telemetrie"
+            android:name="ch.bfh.ti.these.msp.ui.TelemetrieFragment"
+            android:label="Telemetrie View">
+    </fragment>
+
+    <fragment
+            android:id="@+id/nav_frag_map"
+            android:name="ch.bfh.ti.these.msp.ui.MapFragment"
+            android:label="Map View">
+    </fragment>
+
+</navigation>

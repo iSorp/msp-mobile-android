@@ -1,14 +1,15 @@
-package ch.bfh.ti.these.msp;
+package ch.bfh.ti.these.msp.ui;
 
-import android.content.Intent;
 import android.os.AsyncTask;
-import android.view.Menu;
-import android.view.View;
-import android.widget.*;
-import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
-import androidx.appcompat.widget.Toolbar;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.*;
+import androidx.fragment.app.Fragment;
+import ch.bfh.ti.these.msp.R;
 import ch.bfh.ti.these.msp.http.MissionClient;
+import ch.bfh.ti.these.msp.mavlink.MavlinkConnectionInfo;
 import ch.bfh.ti.these.msp.mavlink.MavlinkMessageListener;
 import ch.bfh.ti.these.msp.mavlink.model.Converter;
 import ch.bfh.ti.these.msp.mavlink.model.MavlinkMission;
@@ -19,13 +20,11 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import static ch.bfh.ti.these.msp.MspApplication.getMavlinkMaster;
-import static ch.bfh.ti.these.msp.util.Definitions.*;
+import static ch.bfh.ti.these.msp.util.Definitions.BACKEND_HOST;
+import static ch.bfh.ti.these.msp.util.Definitions.BACKEND_PORT;
 
+public class MissionFragment extends Fragment implements AdapterView.OnItemSelectedListener, MavlinkMessageListener {
 
-
-public class MissionActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener, MavlinkMessageListener {
-
-    final static String MISSION_ID = "missionId";
 
     private Button btnUpload;
     private Button btnDownload;
@@ -34,83 +33,44 @@ public class MissionActivity extends AppCompatActivity implements AdapterView.On
 
     private boolean hasFiles;
 
-
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_select_mission);
+    }
 
+    // The onCreateView method is called when Fragment should create its View object hierarchy,
+    // either dynamically or via XML layout inflation.
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_mission, parent, false);
+    }
+
+    // This event is triggered soon after onCreateView().
+    // onViewCreated() is only called if the view returned from onCreateView() is non-null.
+    // Any view setup should occur here.  E.g., view lookups and attaching view listeners.
+    @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
         setupView();
-    }
 
-    // Menu icons are inflated just as they were with actionbar
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
-        getMenuInflater().inflate(R.menu.menu_main, menu);
-        return true;
-    }
-
-    @Override
-    protected void onResume() {
-        super.onResume();
         getMavlinkMaster().addMessageListener(this);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
         new LoadMission().execute();
     }
 
     @Override
-    protected void onPause() {
-        super.onPause();
+    public void onDestroy() {
+        super.onDestroy();
         getMavlinkMaster().removeMessageListener(this);
-    }
-
-    @Override
-    protected void onStop() {
-        super.onStop();
-        getMavlinkMaster().removeMessageListener(this);
-    }
-
-
-    private void setupView() {
-
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar_main);
-        setSupportActionBar(toolbar);
-
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
-        getSupportActionBar().setDisplayShowHomeEnabled(true);
-
-        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                onBackPressed();
-            }
-        });
-
-
-        btnUpload = findViewById(R.id.btnUpload);
-        btnUpload.setEnabled(false);
-        btnUpload.setOnClickListener(view -> {
-            new LoadWaypointsMission().execute();
-        });
-
-        btnDownload = findViewById(R.id.btnDownload);
-        btnDownload.setEnabled(true);
-        btnDownload.setOnClickListener(view -> {
-            new DownloadMissionResult().execute();
-        });
-
-        missionSpinner = findViewById(R.id.spinner);
-        missionSpinner.setOnItemSelectedListener(this);
-        missionSpinner.setEnabled(false);
-
-        progressBar = findViewById(R.id.progressBar);
-        progressBar.setEnabled(true);
-        progressBar.setVisibility(View.VISIBLE);
     }
 
     @Override
     public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
-        btnUpload.setEnabled(true);
+        btnUpload.setEnabled(true && getMavlinkMaster().isConnected());
     }
 
     @Override
@@ -118,10 +78,45 @@ public class MissionActivity extends AppCompatActivity implements AdapterView.On
         btnUpload.setEnabled(false);
     }
 
+    @Override
+    public void messageReceived(MavlinkMessage message) {
+
+        btnDownload.post(() -> {
+            btnDownload.setEnabled(getMavlinkMaster().isConnected());
+        });
+    }
+
+    @Override
+    public void connectionStatusChanged(MavlinkConnectionInfo info) {
+
+    }
+
+    private void setupView() {
+
+        btnUpload = getActivity().findViewById(R.id.btnUpload);
+        btnUpload.setEnabled(false);
+        btnUpload.setOnClickListener(view -> {
+            new LoadWaypointsMission().execute();
+        });
+
+        btnDownload = getActivity().findViewById(R.id.btnDownload);
+        btnDownload.setEnabled(true);
+        btnDownload.setOnClickListener(view -> {
+            new DownloadMissionResult().execute();
+        });
+
+        missionSpinner = getActivity().findViewById(R.id.spinner);
+        missionSpinner.setOnItemSelectedListener(this);
+        missionSpinner.setEnabled(false);
+
+        progressBar = getActivity().findViewById(R.id.progressBar);
+        progressBar.setEnabled(false);
+        progressBar.setVisibility(View.VISIBLE);
+    }
+
     private void setStatusBusy(boolean status) {
         progressBar.post(()-> {
             btnDownload.setEnabled(!status);
-            btnUpload.setEnabled(!status);
             progressBar.setEnabled(!status);
             if (status)
                 progressBar.setVisibility(View.VISIBLE);
@@ -131,16 +126,11 @@ public class MissionActivity extends AppCompatActivity implements AdapterView.On
     }
 
     private void showToast(String message) {
-        this.runOnUiThread(new Runnable() {
+        this.getActivity().runOnUiThread(new Runnable() {
             public void run() {
-                Toast.makeText(MissionActivity.this, message, Toast.LENGTH_LONG).show();
+                Toast.makeText(getActivity(), message, Toast.LENGTH_LONG).show();
             }
         });
-    }
-
-    @Override
-    public void messageReceived(MavlinkMessage message) {
-
     }
 
     private class LoadMission extends AsyncTask<Void, Void, List<Mission>> {
@@ -153,9 +143,10 @@ public class MissionActivity extends AppCompatActivity implements AdapterView.On
         protected void onPostExecute(List<Mission> missions) {
             super.onPostExecute(missions);
 
-            MissionActivity.this.missionSpinner.setAdapter(new ArrayAdapter<>(
-                    MissionActivity.this,
-                    R.layout.support_simple_spinner_dropdown_item, missions));
+            MissionFragment.this.missionSpinner.setAdapter(new ArrayAdapter<> (
+                    getActivity(),
+                    R.layout.support_simple_spinner_dropdown_item,
+                    missions));
             missionSpinner.setEnabled(true);
 
             progressBar.setEnabled(false);
@@ -166,9 +157,9 @@ public class MissionActivity extends AppCompatActivity implements AdapterView.On
     private class LoadWaypointsMission extends AsyncTask<Void, Void, Mission> {
         @Override
         protected Mission doInBackground(Void... voids) {
-            Intent intent = getIntent();
-            String missionId = intent.getStringExtra(MissionActivity.MISSION_ID);
-            return MissionClient.getInstance(BACKEND_HOST, BACKEND_PORT).getMission(missionId);
+
+            Mission selected = (Mission)missionSpinner.getSelectedItem();
+            return MissionClient.getInstance(BACKEND_HOST, BACKEND_PORT).getMission(selected.getId());
         }
 
         @Override
@@ -182,8 +173,8 @@ public class MissionActivity extends AppCompatActivity implements AdapterView.On
 
                 getMavlinkMaster().getMissionService().uploadMission(mission).thenAccept((a) -> {
                     setStatusBusy(false);
-                            showToast("Upload erfolgreich");
-                        })
+                    showToast("Upload erfolgreich");
+                })
                         .exceptionally(throwable -> {
                             setStatusBusy(false);
                             if (throwable != null)
@@ -235,3 +226,5 @@ public class MissionActivity extends AppCompatActivity implements AdapterView.On
         }
     }
 }
+
+

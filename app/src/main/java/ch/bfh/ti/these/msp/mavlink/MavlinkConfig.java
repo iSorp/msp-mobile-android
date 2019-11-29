@@ -19,6 +19,10 @@ public class MavlinkConfig {
         this.mavlinCommWrapper = mavlinCommWrapper;
     }
 
+    /**
+     * Returns the vehicel system id
+     * @return
+     */
     public int getSystemId() {
         return systemId;
     }
