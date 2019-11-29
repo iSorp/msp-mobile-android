@@ -1,0 +1,11 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+             android:orientation="horizontal"
+             android:layout_width="match_parent"
+             android:layout_height="match_parent" >
+    <fragment
+            android:id="@+id/settings_container"
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            class="ch.bfh.ti.these.msp.SettingsFragment" />
+</FrameLayout>

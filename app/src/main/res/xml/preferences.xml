@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+        xmlns:app="http://schemas.android.com/apk/res-auto" xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <PreferenceCategory android:title="Backend Settings" >
+        <EditTextPreference
+                app:key="backendAddress"
+                app:defaultValue="127.0.0.1"
+                android:inputType="number"
+                app:title="Backend Address"/>
+
+        <EditTextPreference
+                app:key="backendPort"
+                app:defaultValue="8081"
+
+                app:title="Backend Port"/>
+    </PreferenceCategory>
+
+    <PreferenceCategory android:title="Mavlink Settings">
+        <SwitchPreferenceCompat
+                app:key="udpMavlinkEnable"
+                app:defaultValue="true"
+                app:title="Mavlink-UDP enable"
+                app:summary="Mavlink connection over udp"/>
+
+        <EditTextPreference
+                app:key="sourcePort"
+                app:defaultValue="5000"
+                app:title="Source Port"/>
+
+        <EditTextPreference
+                app:key="vehicleAddress"
+                app:defaultValue="127.0.0.1"
+                app:title="Vehicle Address"/>
+
+        <EditTextPreference
+                app:key="vehiclePort"
+                app:defaultValue="5001"
+                app:title="Vehicle Port"/>
+
+        <EditTextPreference
+                app:key="vehicleSystemId"
+                app:defaultValue="1"
+                app:title="Mavlink system id"/>
+
+        <EditTextPreference
+                app:key="vehicleComponentId"
+                app:defaultValue="1"
+                app:title="Mavlink component id"/>
+
+        <EditTextPreference
+                app:key="mavTimeout"
+                app:defaultValue="2000"
+                app:title="Mavlink connection timeout"/>
+
+    </PreferenceCategory>
+
+
+</PreferenceScreen>

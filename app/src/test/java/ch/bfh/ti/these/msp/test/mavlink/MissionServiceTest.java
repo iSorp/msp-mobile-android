@@ -8,6 +8,7 @@ import ch.bfh.ti.these.msp.mavlink.model.MavlinkMissionUploadItem;
 import ch.bfh.ti.these.msp.models.Mission;
 import ch.bfh.ti.these.msp.models.WayPoint;
 
+import ch.bfh.ti.these.msp.util.Definitions;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
@@ -19,17 +20,16 @@ import java.util.concurrent.CompletableFuture;
 
 public class MissionServiceTest {
 
-    private final int MISSION_COUNT = 50;
+    private final int MISSION_COUNT = 10;
     private MavlinkMission mission;
-    private MavlinkUdpBridge mavlinkBridge = new MavlinkUdpBridge();
+    private MavlinkUdpBridge mavlinkBridge = new MavlinkUdpBridge(Definitions.MAVLINK_TEST_SOURCE_PORT, Definitions.MAVLINK_TEST_TARGET, Definitions.MAVLINK_TEST_TARGET_PORT);
     private MavlinkMaster master;
 
     @Before
     public void tearUp() throws Exception {
-        mavlinkBridge.connect();
 
         MavlinkConfig config = new MavlinkConfig
-                .Builder(1, mavlinkBridge)
+                .Builder(mavlinkBridge)
                 .setTimeout(30000)
                 .setSystemId(1)
                 .setComponentId(1)
@@ -51,7 +51,12 @@ public class MissionServiceTest {
 
     @After
     public void tearDown() {
-        mavlinkBridge.disconnect();
+        try {
+            master.dispose();
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     @Test

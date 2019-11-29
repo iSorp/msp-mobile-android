@@ -2,128 +2,236 @@ package ch.bfh.ti.these.msp;
 
 import android.content.Intent;
 import android.os.AsyncTask;
-import android.os.Bundle;
-import android.widget.Button;
-import android.widget.TextView;
+import android.view.Menu;
+import android.view.View;
+import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
+import android.os.Bundle;
+import androidx.appcompat.widget.Toolbar;
 import ch.bfh.ti.these.msp.http.MissionClient;
-import ch.bfh.ti.these.msp.mavlink.*;
+import ch.bfh.ti.these.msp.mavlink.MavlinkMessageListener;
 import ch.bfh.ti.these.msp.mavlink.model.Converter;
 import ch.bfh.ti.these.msp.mavlink.model.MavlinkMission;
-import ch.bfh.ti.these.msp.mavlink.model.MavlinkMissionUploadItem;
 import ch.bfh.ti.these.msp.models.Mission;
 import io.dronefleet.mavlink.MavlinkMessage;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.Socket;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
-public class MissionActivity extends AppCompatActivity implements MavlinkMessageListener {
+import static ch.bfh.ti.these.msp.MspApplication.getMavlinkMaster;
+import static ch.bfh.ti.these.msp.util.Definitions.*;
 
-    private TextView txtStatus;
 
-    private Button btnTakeOff;
-    private Button btnReturnToOrigin;
-    private Button btnLanding;
 
-    private MavlinkMaster mavlinkMaster;
+public class MissionActivity extends AppCompatActivity implements AdapterView.OnItemSelectedListener, MavlinkMessageListener {
+
+    final static String MISSION_ID = "missionId";
+
+    private Button btnUpload;
+    private Button btnDownload;
+    private Spinner missionSpinner;
+    private ProgressBar progressBar;
+
+    private boolean hasFiles;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_mission);
+        setContentView(R.layout.activity_select_mission);
+
         setupView();
+    }
+
+    // Menu icons are inflated just as they were with actionbar
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.menu_main, menu);
+        return true;
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        new LoadWaypointsMission().execute();
+        getMavlinkMaster().addMessageListener(this);
+        new LoadMission().execute();
     }
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (mavlinkMaster != null) {
-            mavlinkMaster.dispose();
-        }
+        getMavlinkMaster().removeMessageListener(this);
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+        getMavlinkMaster().removeMessageListener(this);
+    }
+
+
+    private void setupView() {
+
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar_main);
+        setSupportActionBar(toolbar);
+
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setDisplayShowHomeEnabled(true);
+
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                onBackPressed();
+            }
+        });
+
+
+        btnUpload = findViewById(R.id.btnUpload);
+        btnUpload.setEnabled(false);
+        btnUpload.setOnClickListener(view -> {
+            new LoadWaypointsMission().execute();
+        });
+
+        btnDownload = findViewById(R.id.btnDownload);
+        btnDownload.setEnabled(true);
+        btnDownload.setOnClickListener(view -> {
+            new DownloadMissionResult().execute();
+        });
+
+        missionSpinner = findViewById(R.id.spinner);
+        missionSpinner.setOnItemSelectedListener(this);
+        missionSpinner.setEnabled(false);
+
+        progressBar = findViewById(R.id.progressBar);
+        progressBar.setEnabled(true);
+        progressBar.setVisibility(View.VISIBLE);
+    }
+
+    @Override
+    public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+        btnUpload.setEnabled(true);
+    }
+
+    @Override
+    public void onNothingSelected(AdapterView<?> adapterView) {
+        btnUpload.setEnabled(false);
+    }
+
+    private void setStatusBusy(boolean status) {
+        progressBar.post(()-> {
+            btnDownload.setEnabled(!status);
+            btnUpload.setEnabled(!status);
+            progressBar.setEnabled(!status);
+            if (status)
+                progressBar.setVisibility(View.VISIBLE);
+            else
+                progressBar.setVisibility(View.INVISIBLE);
+        });
+    }
+
+    private void showToast(String message) {
+        this.runOnUiThread(new Runnable() {
+            public void run() {
+                Toast.makeText(MissionActivity.this, message, Toast.LENGTH_LONG).show();
+            }
+        });
     }
 
     @Override
     public void messageReceived(MavlinkMessage message) {
-        txtStatus.setText(message.toString());
+
     }
 
-    private void setupView() {
-        txtStatus = findViewById(R.id.txtStatus);
-        btnTakeOff = findViewById(R.id.btnTakeOff);
-        btnTakeOff.setEnabled(false);
-        btnReturnToOrigin = findViewById(R.id.btnRetrun);
-        btnReturnToOrigin.setEnabled(false);
-        btnLanding = findViewById(R.id.btnLanding);
-        btnLanding.setEnabled(false);
+    private class LoadMission extends AsyncTask<Void, Void, List<Mission>> {
+        @Override
+        protected List<Mission> doInBackground(Void... voids) {
+            return MissionClient.getInstance(BACKEND_HOST, BACKEND_PORT).getMissionList();
+        }
+
+        @Override
+        protected void onPostExecute(List<Mission> missions) {
+            super.onPostExecute(missions);
+
+            MissionActivity.this.missionSpinner.setAdapter(new ArrayAdapter<>(
+                    MissionActivity.this,
+                    R.layout.support_simple_spinner_dropdown_item, missions));
+            missionSpinner.setEnabled(true);
+
+            progressBar.setEnabled(false);
+            progressBar.setVisibility(View.INVISIBLE);
+        }
     }
 
     private class LoadWaypointsMission extends AsyncTask<Void, Void, Mission> {
         @Override
         protected Mission doInBackground(Void... voids) {
             Intent intent = getIntent();
-            String missionId = intent.getStringExtra(SelectMissionActivity.MISSION_ID);
-            return MissionClient.getInstance("192.168.1.120", 8081).getMission(missionId);
+            String missionId = intent.getStringExtra(MissionActivity.MISSION_ID);
+            return MissionClient.getInstance(BACKEND_HOST, BACKEND_PORT).getMission(missionId);
         }
 
         @Override
         protected void onPostExecute(Mission m) {
             super.onPostExecute(m);
 
-            AsyncTask.execute(new Runnable() {
-                @Override
-                public void run() {
-                    try {
-                        MavlinkUdpBridge bridge = new MavlinkUdpBridge();
-                        bridge.connect();
-                        MavlinkConfig config = new MavlinkConfig
-                                .Builder(1, bridge)
-                                .setTimeout(30000)
-                                .setSystemId(1)
-                                .setComponentId(1)
-                                .build();
-                        mavlinkMaster = new MavlinkMaster(config);
-                        mavlinkMaster.addMessageListener(MissionActivity.this);
-                        mavlinkMaster.connect();
+            try {
+                setStatusBusy(true);
+                missionSpinner.getSelectedItem();
+                MavlinkMission mission = Converter.convertToUploadItems((Mission)missionSpinner.getSelectedItem());
 
-                        MavlinkMission mission = new MavlinkMission();
-                        for (int i = 0; i < 20; i++) {
-                            MavlinkMissionUploadItem item = new MavlinkMissionUploadItem(12 + i, 32 + i, 3);
-                            item.setBehavior(5, 1);
-                            mission.addUploadItem(item);
-                            MavlinkMissionUploadItem actionItem = new MavlinkMissionUploadItem(12 + i, 32 + i, 3);
-                            actionItem.setSensor(1, 1, 0, 0);
-                            mission.addUploadItem(item);
+                getMavlinkMaster().getMissionService().uploadMission(mission).thenAccept((a) -> {
+                    setStatusBusy(false);
+                            showToast("Upload erfolgreich");
+                        })
+                        .exceptionally(throwable -> {
+                            setStatusBusy(false);
+                            if (throwable != null)
+                            {
+                                showToast(throwable.getMessage());
+                            }
+                            return null;
+                        });
+
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private class DownloadMissionResult extends AsyncTask<Void, Void, Boolean> {
+
+        @Override
+        protected Boolean doInBackground(Void... voids) {
+
+
+            try {
+                setStatusBusy(true);
+                hasFiles = true;
+                int index = 1;
+                while (hasFiles) {
+                    CompletableFuture cf = getMavlinkMaster().getFtpService().downloadFile("wp" + index++ + ".json").thenAccept(a -> {
+
+                        System.out.println(a);
+                        // TODO store to backend
+
+
+                    }).exceptionally(throwable -> {
+                        setStatusBusy(false);
+                        if (throwable != null) {
+                            hasFiles = false;
+                            showToast(throwable.getMessage());
                         }
-                        CompletableFuture compf = MissionActivity.this.mavlinkMaster.getMissionService().uploadMission(mission);
-                        // Wait for completion
-                        compf.get();
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
-            /*try {
-                if (MissionActivity.this.mavlinkMaster != null && m != null) {
+                        return null;
+                    });
 
+                    cf.get();
                 }
-            } catch (IOException e) {
-                txtStatus.setText(e.getMessage());
+                showToast("download beendet");
+            } catch(Exception e){
                 e.printStackTrace();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
-            }*/
+            }
+            return true;
         }
     }
 }

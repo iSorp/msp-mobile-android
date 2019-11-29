@@ -5,6 +5,7 @@ import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
 import ch.bfh.ti.these.msp.mavlink.MavlinkMessageListener;
 import ch.bfh.ti.these.msp.mavlink.MavlinkUdpBridge;
 
+import ch.bfh.ti.these.msp.util.Definitions;
 import io.dronefleet.mavlink.MavlinkMessage;
 import org.junit.After;
 import org.junit.Assert;
@@ -18,14 +19,15 @@ import java.util.concurrent.CompletableFuture;
 
 public class FtpServiceTest {
 
-    private MavlinkUdpBridge mavlinkBridge = new MavlinkUdpBridge();
+    private MavlinkUdpBridge mavlinkBridge = new MavlinkUdpBridge(Definitions.MAVLINK_TEST_SOURCE_PORT, Definitions.MAVLINK_TEST_TARGET, Definitions.MAVLINK_TEST_TARGET_PORT);
     private MavlinkMaster master;
 
     @Before
     public void tearUp() throws Exception {
        mavlinkBridge.connect();
 
-        MavlinkConfig config = new MavlinkConfig.Builder(1, mavlinkBridge)
+        MavlinkConfig config = new MavlinkConfig
+                .Builder(mavlinkBridge)
                 .setTimeout(30000)
                 .setSystemId(1)
                 .setComponentId(1)
@@ -37,7 +39,12 @@ public class FtpServiceTest {
 
     @After
     public void tearDown() {
-        mavlinkBridge.disconnect();
+        try {
+            master.dispose();
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     @Test
@@ -45,7 +52,7 @@ public class FtpServiceTest {
 
         CompletableFuture compf = master.getFtpService().downloadFile("/home/simon/Develop/msp-onboard/wp0data.json")
                 .thenAccept((a) -> {
-                   try (FileOutputStream fos = new FileOutputStream("wp0data.json")) {
+                   try (FileOutputStream fos = new FileOutputStream("wp0.json")) {
                         fos.write(a);
                     }
                     catch (Exception e){

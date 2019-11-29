@@ -8,7 +8,7 @@ import java.util.concurrent.*;
 public abstract class BaseService {
 
     protected MavlinkMaster.MavlinkListener listener;
-    protected int systemId, componentId;
+    protected int systemId, componentId; // Target
     protected MavlinkConnection connection;
 
 

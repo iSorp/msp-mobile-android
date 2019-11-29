@@ -31,9 +31,14 @@
             android:roundIcon="@mipmap/ic_launcher_round"
             android:supportsRtl="true"
             android:theme="@style/AppTheme">
+
+        <activity android:name=".SettingsActivity">
+        </activity>
         <activity android:name=".MissionActivity">
         </activity>
-        <activity android:name=".SelectMissionActivity">
+        <activity android:name=".MainActivity">
+        </activity>
+        <activity android:name=".RegistrationActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 
@@ -56,8 +61,6 @@
                 android:name="com.dji.sdk.API_KEY"
                 android:value="1b767da07c87bd55d58a7318"/>
 
-        <activity android:name=".MainActivity">
-        </activity>
     </application>
 
 </manifest>
