@@ -19,6 +19,7 @@ import io.dronefleet.mavlink.common.Heartbeat;
 
 public class MavlinkMaster {
 
+    private Object syncObject = new Object();
     private boolean connected, listenerExit;
     private MavlinkConnection connection;
     private MavlinkConfig config;
@@ -32,19 +33,17 @@ public class MavlinkMaster {
 
     public MavlinkMaster(MavlinkConfig config) {
         this.config = config;
-
-        // Create a configuration specific mavlink connection
-        connection = MavlinkConnection.create(
-                config.getCommWrapper().getInputStream(),
-                config.getCommWrapper().getOutputStream());
-
         // Add mavlink connection handler
         this.addMessageListener(connectionHandler);
 
-        // initialize micro services
-        missionService      = new MissionService(connection, config.getSystemId(), config.getComponentId(), listener);
-        heartbeatService    = new HeartbeatService(connection, config.getSystemId(), config.getComponentId(), listener);
-        ftpService          = new FtpService(connection, config.getSystemId(), config.getComponentId(), listener);
+    }
+
+    /**
+     * Sets a new Mavlinkmaster configuration. After the call a reconnection is necessary
+     * @param config
+     */
+    public void setConfig(MavlinkConfig config) {
+        this.config = config;
     }
 
     /**
@@ -56,14 +55,27 @@ public class MavlinkMaster {
      * @throws IOException
      */
     public boolean connect() throws Exception {
+        synchronized (syncObject) {
 
-        config.getCommWrapper().connect();
+            // Create a configuration specific mavlink connection
+            connection = MavlinkConnection.create(
+                    config.getCommWrapper().getInputStream(),
+                    config.getCommWrapper().getOutputStream());
 
-        // Start mavlink message listener
-        listenerExit = false;
-        listenerThread = new Thread(listener);
-        listenerThread.setDaemon(true);
-        listenerThread.start();
+            // initialize micro services
+            missionService = new MissionService(connection, config.getSystemId(), config.getComponentId(), listener);
+            heartbeatService = new HeartbeatService(connection, config.getSystemId(), config.getComponentId(), listener);
+            ftpService = new FtpService(connection, config.getSystemId(), config.getComponentId(), listener);
+
+
+            config.getCommWrapper().connect();
+
+            // Start mavlink message listener
+            listenerExit = false;
+            listenerThread = new Thread(listener);
+            listenerThread.setDaemon(true);
+            listenerThread.start();
+        }
 
         CompletableFuture<Boolean> f = getHeartbeatService().ping()
                 .exceptionally(throwable -> {
@@ -129,32 +141,28 @@ public class MavlinkMaster {
         @Override
         public void run() {
 
-            while (connection == null){
-                try{ Thread.sleep(100);}catch (InterruptedException e){
-                    e.printStackTrace();
-                }
-            }
-
             while (!listenerExit) {
-                try {
-                    MavlinkMessage message;
-                    while ((message = connection.next()) != null) {
+                synchronized (syncObject) {
 
-                        // notify registered services
-                        for (BaseMicroService service : serviceQueue) {
-                            service.addMessage(message);
-                        }
+                    try {
+                        MavlinkMessage message;
+                        while ((message = connection.next()) != null) {
 
-                        // TODO inform listeners asynchronous
-                        // notify registered listeners
-                        for (MavlinkMessageListener listener : messageListeners) {
-                            listener.messageReceived(message);
+                            // notify registered services
+                            for (BaseMicroService service : serviceQueue) {
+                                service.addMessage(message);
+                            }
+
+                            // TODO inform listeners asynchronous
+                            // notify registered listeners
+                            for (MavlinkMessageListener listener : messageListeners) {
+                                listener.messageReceived(message);
+                            }
                         }
+                    } catch (EOFException eof) {
+                    } catch (IOException eio) {
+                        //System.out.println(eio.getMessage());
                     }
-                }
-                catch (EOFException eof) { }
-                catch (IOException eio) {
-                    //System.out.println(eio.getMessage());
                 }
             }
         }
@@ -165,25 +173,50 @@ public class MavlinkMaster {
      */
     private MavlinkMessageListener connectionHandler = new MavlinkMessageListener() {
 
+        private Object syncObject = new Object();
         TimeoutTask timeoutTask = new TimeoutTask();
         Timer timer = new Timer();
+        MavlinkConnectionInfo lastInfo;
 
         @Override
         public void messageReceived(MavlinkMessage message) {
             if (message.getPayload() instanceof Heartbeat) {
                 MavlinkMessage<Heartbeat> msg = (MavlinkMessage<Heartbeat>)message;
 
-                connected = msg.getOriginSystemId() == config.getSystemId();
-                if (connected) {
-                    restartTimer();
+                synchronized (syncObject) {
+                    connected = msg.getOriginSystemId() == config.getSystemId();
+                    if (connected) {
+                        restartTimer();
+                    }
+
+                    MavlinkConnectionInfo info = new MavlinkConnectionInfo(
+                            msg.getOriginSystemId(),
+                            msg.getOriginComponentId(),
+                            connected);
+
+                    lastInfo = info;
+
+                    notifyListener(info);
                 }
             }
         }
 
+        @Override
+        public void connectionStatusChanged(MavlinkConnectionInfo info) { }
+
+        /**
+         * Connection timeout task
+         */
         class TimeoutTask extends TimerTask {
             @Override
             public void run() {
-                connected = false;
+                synchronized (syncObject) {
+                    connected = false;
+                    MavlinkConnectionInfo info = new MavlinkConnectionInfo(lastInfo.getSystemId(),
+                            lastInfo.getCompId(),
+                            connected);
+                    notifyListener(info);
+                }
             }
         }
 
@@ -192,6 +225,12 @@ public class MavlinkMaster {
             timeoutTask = new TimeoutTask();
             timer.schedule(timeoutTask, 2000);
             timer.purge();
+        }
+
+        private void notifyListener(MavlinkConnectionInfo info) {
+            for (MavlinkMessageListener listener : messageListeners) {
+                listener.connectionStatusChanged(info);
+            }
         }
 
     };

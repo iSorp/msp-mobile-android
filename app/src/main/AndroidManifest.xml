@@ -32,13 +32,11 @@
             android:supportsRtl="true"
             android:theme="@style/AppTheme">
 
-        <activity android:name=".SettingsActivity">
+        <activity android:name=".ui.SettingsActivity" android:screenOrientation="landscape">
         </activity>
-        <activity android:name=".MissionActivity">
+        <activity android:name=".ui.MissionActivity" android:screenOrientation="landscape">
         </activity>
-        <activity android:name=".MainActivity">
-        </activity>
-        <activity android:name=".RegistrationActivity">
+        <activity android:name=".ui.MainActivity" android:screenOrientation="landscape">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
 

@@ -1,24 +1,20 @@
-package ch.bfh.ti.these.msp;
+package ch.bfh.ti.these.msp.ui;
 
 import android.Manifest;
-import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.hardware.usb.UsbManager;
 import android.os.AsyncTask;
 import android.os.Build;
-
-import android.view.View;
-import android.widget.ProgressBar;
-import android.widget.TextView;
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.core.app.ActivityCompat;
-import androidx.core.content.ContextCompat;
-
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.Toast;
-
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.*;
+import androidx.annotation.NonNull;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+import androidx.fragment.app.Fragment;
+import ch.bfh.ti.these.msp.R;
 import dji.common.error.DJIError;
 import dji.common.error.DJISDKError;
 import dji.log.DJILog;
@@ -29,19 +25,22 @@ import dji.sdk.sdkmanager.DJISDKManager;
 
 import java.util.ArrayList;
 import java.util.List;
-
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import static ch.bfh.ti.these.msp.MspApplication.createMavlinkMaster;
+public class RegisterFragment extends Fragment {
 
 
-public class RegistrationActivity extends AppCompatActivity {
+    public interface OnRegisterCompleteListener {
+        void onRegisterComplete();
+    }
 
-    private TextView textView;
-    private ProgressBar progressBar;
 
+    public TextView textView;
+    public Button btnContinue;
+    public ProgressBar progressBar;
 
-    private static final String TAG = RegistrationActivity.class.getSimpleName();
+    private int lastProcess = -1;
+
     private static final String[] REQUIRED_PERMISSION_LIST = new String[] {
             Manifest.permission.VIBRATE, // Gimbal rotation
             Manifest.permission.INTERNET, // API requests
@@ -57,9 +56,13 @@ public class RegistrationActivity extends AppCompatActivity {
             Manifest.permission.READ_PHONE_STATE, // Device UUID accessed upon registration
             Manifest.permission.RECORD_AUDIO // Speaker accessory
     };
+
+    private static final String TAG = MainActivity.class.getSimpleName();
+
     private static final int REQUEST_PERMISSION_CODE = 12345;
     private List<String> missingPermission = new ArrayList<>();
     private AtomicBoolean isRegistrationInProgress = new AtomicBoolean(false);
+
     private BaseComponent.ComponentListener mDJIComponentListener = new BaseComponent.ComponentListener() {
 
         @Override
@@ -69,26 +72,17 @@ public class RegistrationActivity extends AppCompatActivity {
     };
 
     @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
-
-        textView = (TextView)findViewById(R.id.textView1);
-
-        progressBar = findViewById(R.id.progressBar);
-        progressBar.setEnabled(true);
-        progressBar.setVisibility(View.VISIBLE);
-
-        checkAndRequestPermissions();
+    public View onCreateView(LayoutInflater inflater, ViewGroup parent, Bundle savedInstanceState) {
+        return inflater.inflate(R.layout.fragment_register, parent, false);
     }
 
     @Override
-    protected void onNewIntent(@NonNull Intent intent) {
-        String action = intent.getAction();
-        if (UsbManager.ACTION_USB_ACCESSORY_ATTACHED.equals(action)) {
-            Intent attachedIntent = new Intent();
-            attachedIntent.setAction(DJISDKManager.USB_ACCESSORY_ATTACHED);
-            sendBroadcast(attachedIntent);
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        setupView();
+
+        if (!DJISDKManager.getInstance().hasSDKRegistered()) {
+            checkAndRequestPermissions();
         }
     }
 
@@ -112,29 +106,23 @@ public class RegistrationActivity extends AppCompatActivity {
         if (missingPermission.isEmpty()) {
             startSDKRegistration();
         } else {
-            Toast.makeText(getApplicationContext(), "Missing permissions!!!", Toast.LENGTH_LONG).show();
+            Toast.makeText(getActivity().getApplicationContext(), "Missing permissions!!!", Toast.LENGTH_LONG).show();
         }
     }
 
-    /**
-     * Checks if there is any missing permissions, and
-     * requests runtime permission if needed.
-     */
-    private void checkAndRequestPermissions() {
-        // Check for permissions
-        for (String eachPermission : REQUIRED_PERMISSION_LIST) {
-            if (ContextCompat.checkSelfPermission(this, eachPermission) != PackageManager.PERMISSION_GRANTED) {
-                missingPermission.add(eachPermission);
-            }
-        }
-        // Request for missing permissions
-        if (missingPermission.isEmpty()) {
-            startSDKRegistration();
-        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            ActivityCompat.requestPermissions(this,
-                    missingPermission.toArray(new String[missingPermission.size()]),
-                    REQUEST_PERMISSION_CODE);
-        }
+    private void setupView() {
+        textView = (TextView)getActivity().findViewById(R.id.textView1);
+        btnContinue = (Button)getActivity().findViewById(R.id.btnContinue);
+        progressBar = getActivity().findViewById(R.id.progressBar);
+
+        btnContinue.setEnabled(false);
+        progressBar.setEnabled(true);
+        progressBar.setVisibility(View.VISIBLE);
+
+
+        btnContinue.setOnClickListener((v)-> {
+            getListener().onRegisterComplete();
+        });
     }
 
     private void startSDKRegistration() {
@@ -142,22 +130,24 @@ public class RegistrationActivity extends AppCompatActivity {
             AsyncTask.execute(new Runnable() {
                 @Override
                 public void run() {
-                    createMavlinkMaster();
 
-                    //ToastUtils.setResultToToast(RegistrationActivity.this.getString(R.string.sdk_registration_doing_message));
-                    DJISDKManager.getInstance().registerApp(RegistrationActivity.this.getApplicationContext(), new DJISDKManager.SDKManagerCallback() {
+                    setStatusTextAsync("Register MSDK");
+
+                    DJISDKManager.getInstance().registerApp(getActivity().getApplicationContext(), new DJISDKManager.SDKManagerCallback() {
                         @Override
                         public void onRegister(DJIError djiError) {
                             if (djiError == DJISDKError.REGISTRATION_SUCCESS) {
                                 DJILog.e("App registration", DJISDKError.REGISTRATION_SUCCESS.getDescription());
                                 DJISDKManager.getInstance().startConnectionToProduct();
-                                setTextAsync();
+                                setStatusTextAsync("MSDK successful registered");
 
-                                Intent mainActivity = new Intent(RegistrationActivity.this, MainActivity.class);
-                                RegistrationActivity.this.startActivity(mainActivity);
-
+                                btnContinue.post(() ->{
+                                    progressBar.setVisibility(View.INVISIBLE);
+                                    progressBar.setProgress(0);
+                                    btnContinue.setEnabled(true);
+                                });
                             } else {
-                                Toast.makeText(getApplicationContext(),djiError.getDescription(),Toast.LENGTH_SHORT).show();
+                                Toast.makeText(getActivity().getApplicationContext(),djiError.getDescription(),Toast.LENGTH_SHORT).show();
                             }
                             Log.v(TAG, djiError.getDescription());
                         }
@@ -188,12 +178,22 @@ public class RegistrationActivity extends AppCompatActivity {
 
                         @Override
                         public void onInitProcess(DJISDKInitEvent djisdkInitEvent, int i) {
-
+                            Log.d(TAG, "onInitProcess");
                         }
 
                         @Override
                         public void onDatabaseDownloadProgress(long current, long total) {
-
+                            int process = (int) (100 * current / total);
+                            if (process == lastProcess) {
+                                return;
+                            }
+                            lastProcess = process;
+                            showProgress(process);
+                            if (process % 25 == 0){
+                                setStatusTextAsync("DB load process : " + process);
+                            }else if (process == 0){
+                                setStatusTextAsync("DB load begin");
+                            }
                         }
                     });
                 }
@@ -201,13 +201,51 @@ public class RegistrationActivity extends AppCompatActivity {
         }
     }
 
-    private void setTextAsync() {
-        textView.post(new Runnable() {
+    private void checkAndRequestPermissions() {
+        // Check for permissions
+        for (String eachPermission : REQUIRED_PERMISSION_LIST) {
+            if (ContextCompat.checkSelfPermission(getActivity(), eachPermission) != PackageManager.PERMISSION_GRANTED) {
+                missingPermission.add(eachPermission);
+            }
+        }
+        // Request for missing permissions
+        if (missingPermission.isEmpty()) {
+            startSDKRegistration();
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            ActivityCompat.requestPermissions(getActivity(),
+                    missingPermission.toArray(new String[missingPermission.size()]),
+                    REQUEST_PERMISSION_CODE);
+        }
+    }
+
+    private void showProgress(final int process){
+        getActivity().runOnUiThread(new Runnable() {
+            @Override
             public void run() {
-                textView.setText("MSDK successful registered");
+                progressBar.setVisibility(View.VISIBLE);
+                if (process >= 0)
+                    progressBar.setProgress(process);
             }
         });
     }
 
+    private void setStatusTextAsync(String text) {
+        textView.post(new Runnable() {
+            public void run() {
+                textView.setText(text);
+            }
+        });
+    }
+
+    private OnRegisterCompleteListener getListener() {
+        if (getActivity() instanceof OnRegisterCompleteListener) {
+            return (OnRegisterCompleteListener) getActivity();
+        } else {
+            throw new ClassCastException(getActivity().toString()
+                    + " must implemenet RegisterFragment.OnRegisterCompleteListener");
+        }
+    }
+
 }
+
 

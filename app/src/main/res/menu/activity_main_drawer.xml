@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+      xmlns:tools="http://schemas.android.com/tools"
+      tools:showIn="navigation_view">
+
+
+    <item android:title="Views">
+        <group android:checkableBehavior="single">
+            <item
+                    android:id="@+id/nav_fpv"
+                    android:title="First person view"/>
+            <item
+                    android:id="@+id/nav_map"
+                    android:title="Map view"/>
+            <item
+                    android:id="@+id/nav_telemetrie"
+                    android:title="Telemetrie view"/>
+        </group>
+    </item>
+
+
+    <item android:title="Actions">
+        <menu>
+            <item
+                    android:id="@+id/nav_mission"
+                    android:title="Mission"/>
+            <item
+                    android:id="@+id/nav_ftp"
+                    android:title="File transfer"/>
+            <item
+                    android:id="@+id/nav_settings"
+                    android:title="Einstellungen"/>
+        </menu>
+    </item>
+
+</menu>

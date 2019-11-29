@@ -40,7 +40,7 @@
 
         <EditTextPreference
                 app:key="vehicleSystemId"
-                app:defaultValue="1"
+                app:defaultValue="2"
                 app:title="Mavlink system id"/>
 
         <EditTextPreference

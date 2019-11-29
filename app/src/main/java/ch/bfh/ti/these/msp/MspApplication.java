@@ -4,12 +4,14 @@ import android.app.Application;
 import android.content.Context;
 
 import android.content.SharedPreferences;
+import android.os.AsyncTask;
 import androidx.preference.PreferenceManager;
 import ch.bfh.ti.these.msp.dji.MavlinkAirlinkBridge;
 import ch.bfh.ti.these.msp.mavlink.MavlinkBridge;
 import ch.bfh.ti.these.msp.mavlink.MavlinkConfig;
 import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
 import ch.bfh.ti.these.msp.mavlink.MavlinkUdpBridge;
+
 import dji.sdk.base.BaseProduct;
 import dji.sdk.products.Aircraft;
 import dji.sdk.products.HandHeld;
@@ -78,7 +80,7 @@ public class MspApplication extends Application {
     }
 
 
-    public static void createMavlinkMaster() {
+    public static void createMavlinkMasterConfig() {
         int type = 0;
         if (getAircraftInstance() != null) {
             type = 1;
@@ -121,20 +123,27 @@ public class MspApplication extends Application {
             mavlinkBridge = new MavlinkAirlinkBridge();
         }
 
-        mavlinkMaster = new MavlinkMaster(new MavlinkConfig
+        getMavlinkMaster().setConfig(new MavlinkConfig
                 .Builder(mavlinkBridge)
                 .setTimeout(timeout)
                 .setSystemId(sysId)
                 .setComponentId(compId)
                 .build());
+    }
 
-        try { mavlinkMaster.connect(); }
-        catch (Exception e) {
-            e.printStackTrace();
-        }
+    public static void connectAsyncMavlinkMaster() {
+
+        AsyncTask.execute(() -> {
+            try { getMavlinkMaster().connect(); }
+            catch (Exception e) {
+                e.printStackTrace();
+            }
+        });
     }
 
     public static MavlinkMaster getMavlinkMaster() {
+        if (mavlinkMaster == null)
+            mavlinkMaster = new MavlinkMaster(null);
         return mavlinkMaster;
     }
 }
