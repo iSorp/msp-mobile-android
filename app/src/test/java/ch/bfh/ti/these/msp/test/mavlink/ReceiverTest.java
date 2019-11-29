@@ -1,9 +1,6 @@
 package ch.bfh.ti.these.msp.test.mavlink;
 
-import ch.bfh.ti.these.msp.mavlink.MavlinkConfig;
-import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
-import ch.bfh.ti.these.msp.mavlink.MavlinkMessageListener;
-import ch.bfh.ti.these.msp.mavlink.MavlinkUdpBridge;
+import ch.bfh.ti.these.msp.mavlink.*;
 import ch.bfh.ti.these.msp.util.Definitions;
 import io.dronefleet.mavlink.MavlinkMessage;
 import org.junit.After;
@@ -49,6 +46,11 @@ public class ReceiverTest {
             @Override
             public void messageReceived(MavlinkMessage message) {
                 System.out.println(message.toString());
+            }
+
+            @Override
+            public void connectionStatusChanged(MavlinkConnectionInfo info) {
+
             }
         });
 
