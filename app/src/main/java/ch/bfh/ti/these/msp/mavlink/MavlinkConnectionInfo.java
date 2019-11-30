@@ -6,6 +6,12 @@ public class MavlinkConnectionInfo {
     private int compId;
     private boolean connected;
 
+    public MavlinkConnectionInfo() {
+        this.systemId = -1;
+        this.compId = -1;
+        this.connected = false;
+    }
+
     public MavlinkConnectionInfo(int systemId, int compId, boolean connected) {
         this.systemId = systemId;
         this.compId = compId;

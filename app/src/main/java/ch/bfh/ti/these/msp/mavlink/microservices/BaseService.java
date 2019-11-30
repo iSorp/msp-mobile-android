@@ -7,7 +7,7 @@ import java.util.concurrent.*;
 
 public abstract class BaseService {
 
-    protected MavlinkMaster.MavlinkListener listener;
+    protected MavlinkMaster.ServiceTask listener;
     protected int systemId, componentId; // Target
     protected MavlinkConnection connection;
 
@@ -18,7 +18,7 @@ public abstract class BaseService {
      * @param systemId
      * @param componentId
      */
-    public BaseService(MavlinkConnection connection, int systemId, int componentId, MavlinkMaster.MavlinkListener listener) {
+    public BaseService(MavlinkConnection connection, int systemId, int componentId, MavlinkMaster.ServiceTask listener) {
         this.systemId = systemId;
         this.componentId = componentId;
         this.connection = connection;

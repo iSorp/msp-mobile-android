@@ -21,7 +21,7 @@ import static ch.bfh.ti.these.msp.mavlink.microservices.FtpMessage. *;
  */
 public class FtpService extends BaseService {
 
-    public FtpService(MavlinkConnection connection, int systemId, int componentId, MavlinkMaster.MavlinkListener listener) {
+    public FtpService(MavlinkConnection connection, int systemId, int componentId, MavlinkMaster.ServiceTask listener) {
         super(connection, systemId, componentId, listener);
     }
 
