@@ -2,14 +2,16 @@ package ch.bfh.ti.these.msp.mavlink.microservices;
 
 import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
 
+import com.qx.wz.dj.rtcm.StringUtil;
 import io.dronefleet.mavlink.MavlinkConnection;
-import io.dronefleet.mavlink.MavlinkMessage;
 import io.dronefleet.mavlink.common.FileTransferProtocol;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
-import java.nio.LongBuffer;
+import java.nio.charset.StandardCharsets;
+import java.sql.Array;
+import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 
 import static ch.bfh.ti.these.msp.mavlink.microservices.FtpMessage. *;
@@ -31,8 +33,8 @@ public class FtpService extends BaseService {
      * @return
      * @throws IOException
      */
-    public CompletableFuture<byte[]> listDirectory(String path) throws IOException {
-        return runAsync(new ListDirectoryService(this.connection));
+    public CompletableFuture<String> listDirectory(String path) throws IOException {
+        return runAsync(new ListDirectoryService(this.connection, path));
     }
 
     /**
@@ -53,17 +55,6 @@ public class FtpService extends BaseService {
      */
     public CompletableFuture<byte[]> deletedFile(String filePath) throws IOException {
         return runAsync(new DeleteFileService(this.connection, filePath));
-    }
-
-    /**
-     * ListDirectoryService
-     */
-    private class ListDirectoryService extends BaseMicroService<byte[]> {
-        public ListDirectoryService(MavlinkConnection connection) throws IOException {
-            super(connection);
-        }
-
-        // TODO ListDirectoryService states
     }
 
     /**
@@ -106,7 +97,7 @@ public class FtpService extends BaseService {
                             .setSize(this.getContext().filePath.getBytes().length)
                             .build();
 
-                    // send message: OpenFileRO( data[0]=filePath, size=len(filePath) )
+                    // send message: OpenFileRO( data[0]=path, size=len(path) )
                     this.getContext().send(FileTransferProtocol.builder()
                             .targetSystem(systemId)
                             .targetComponent(componentId)
@@ -160,7 +151,7 @@ public class FtpService extends BaseService {
             public void timeout() throws IOException {
                 super.timeout();
 
-                // restart initialization: OpenFileRO( data[0]=filePath, size=len(filePath) )
+                // restart initialization: OpenFileRO( data[0]=path, size=len(path) )
                 this.getContext().setState(new FileDownloadInit(this.getContext()));
             }
         }
@@ -320,5 +311,104 @@ public class FtpService extends BaseService {
         }
 
         // TODO DeleteFileService states
+    }
+
+    /**
+     * ListDirectoryService
+     */
+    private class ListDirectoryService extends BaseMicroService<String> {
+
+        // FTP Session handling
+        private int offset = 0;
+        private String path = "";
+        private StringBuilder stringBuilder = new StringBuilder();
+
+
+        public ListDirectoryService(MavlinkConnection connection, String path) throws IOException {
+            super(connection);
+            this.path = path;
+            this.state = new ListDirectoryRead(this);
+        }
+
+        public class ListDirectoryRead extends ServiceState<ListDirectoryService> {
+
+            public ListDirectoryRead(ListDirectoryService context) { super(context); }
+
+            @Override
+            public void timeout() throws IOException {
+                super.timeout();
+
+                // send Message: ReadFile(session, size, offset)
+                sendMessageListDirectory(offset);
+            }
+
+            @Override
+            public void enter() throws IOException {
+                super.enter();
+
+                offset = 0;
+
+                // send Message: ListDirectory( data[0]=path, size=len(path), offset=0 )
+                sendMessageListDirectory(offset);
+            }
+
+            @Override
+            public boolean execute() throws IOException, StateException {
+
+                // wait for Response
+                if (this.getContext().message == null) return false;
+                if (message.getPayload() instanceof FileTransferProtocol) {
+
+                    FtpMessage ftp = FtpMessage.parse(message);
+
+                    // Message received: ACK(size, data=entries_at_offset_...)
+                    if (ftp.getCode() == ACK) {
+
+                        byte[] buf = new byte[ftp.getSize()];
+                        System.arraycopy(ftp.getData(), 0, buf, 0, ftp.getSize());
+                        String str = new String(buf, StandardCharsets.UTF_8);
+                        stringBuilder.append(str);
+
+                        ++offset;
+
+                        sendMessageListDirectory(offset);
+
+                    } else if (ftp.getCode() == NAK) {
+                        // NACK(size=1, data[0]=EOF)
+                        if (ftp.getNakEror() == EOF) {
+                            // ok no more data => work done
+                            this.getContext().exit(stringBuilder.toString());
+                        } else {
+                            throw new StateException(this, "NAK received: " + ftp.getNakEror());
+                        }
+                    }
+                }
+                return true;
+            }
+
+            private void sendMessageListDirectory(long offset) throws IOException{
+
+                try {
+                    // prepare FTP message
+                    FtpMessage ftp = new FtpMessage.Builder()
+                            .setOffset(offset)
+                            .setCode(ListDirectory)
+                            .setData(this.getContext().path.getBytes())
+                            .setSize(this.getContext().path.getBytes().length)
+                            .build();
+
+                    // send message: ListDirectory( data[0]=path, size=len(path), offset=0 )
+                    this.getContext().send(FileTransferProtocol.builder()
+                            .targetSystem(systemId)
+                            .targetComponent(componentId)
+                            .payload(ftp.getMessage())
+                            .build());
+
+                } catch (IOException e) {
+                    // TODO error handling
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 }

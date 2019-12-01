@@ -45,13 +45,13 @@ public class FtpMessage {
     public final static int FNF         = 0x0A;
 
     // OpCodes/Command
-    public final static int TERM        = 0x01;
-    public final static int OpenFileRO  = 0x04;
-    public final static int ReadFile    = 0x05;
-
-    public final static int ACK         = 0x80;    // 128
-    public final static int NAK         = 0x81;    // 129
-
+    public final static int TERM            = 0x01;
+    public final static int ListDirectory   = 0x03;
+    public final static int OpenFileRO      = 0x04;
+    public final static int ReadFile        = 0x05;
+    public final static int RemoveDirectory = 0x10;
+    public final static int ACK             = 0x80;    // 128
+    public final static int NAK             = 0x81;    // 129
 
     private int seq, sess, code, size, reqcode, burst, pad;
     private long offset;
