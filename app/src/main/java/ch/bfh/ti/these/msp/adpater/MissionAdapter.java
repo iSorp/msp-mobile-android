@@ -7,7 +7,6 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
-import ch.bfh.ti.these.msp.R;
 import ch.bfh.ti.these.msp.models.Mission;
 
 import java.util.ArrayList;
@@ -40,30 +39,29 @@ public class MissionAdapter extends RecyclerView.Adapter<MissionAdapter.MissionV
             data.clear();
         }
         data.addAll(newData);
+        notifyDataSetChanged();
     }
 
     @NonNull
     @Override
     public MissionViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View itemView = layoutInflater.inflate(R.layout.fragment_mission_list_item, parent, false);
+        View itemView = layoutInflater.inflate(android.R.layout.simple_list_item_1, parent, false);
         return new MissionViewHolder(itemView);
     }
 
 
     class MissionViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
-        private TextView itemNumber, content;
+        private TextView content;
 
         MissionViewHolder(View itemView) {
             super(itemView);
             itemView.setOnClickListener(this);
-            itemNumber = itemView.findViewById(R.id.item_number);
-            content = itemView.findViewById(R.id.content);
+            content = itemView.findViewById(android.R.id.text1);
         }
 
         void bind(final Mission mission) {
             if (mission != null) {
-                itemNumber.setText("1");
                 content.setText(mission.getName());
             }
         }
