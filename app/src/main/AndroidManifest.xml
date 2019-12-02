@@ -86,6 +86,9 @@
         <activity android:name=".ui.MissionActivity"
                   android:screenOrientation="landscape">
         </activity>
+        <activity android:name=".ui.MissionDownloadActivity"
+                  android:screenOrientation="landscape">
+        </activity>
 
 
     </application>
