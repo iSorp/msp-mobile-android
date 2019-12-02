@@ -21,7 +21,6 @@ public class MavlinkUdpBridge implements MavlinkBridge {
     private DatagramSocket server;
     private DatagramSocket client;
 
-
     public MavlinkUdpBridge(int sourcePort, String targetAddress, int targetPort) {
         this.sourcePort = sourcePort;
         this.targetAddress = targetAddress;
@@ -51,10 +50,8 @@ public class MavlinkUdpBridge implements MavlinkBridge {
                 server.disconnect();
                 client.close();
             }
-
         }
     }
-
 
     @Override
     public InputStream getInputStream() {

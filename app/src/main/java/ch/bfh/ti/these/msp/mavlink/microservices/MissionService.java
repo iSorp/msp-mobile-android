@@ -19,7 +19,7 @@ import static io.dronefleet.mavlink.common.MavCmd.*;
  */
 public class MissionService extends BaseService {
 
-    public MissionService(MavlinkConnection connection, int systemId, int componentId, MavlinkMaster.MavlinkListener listener) {
+    public MissionService(MavlinkConnection connection, int systemId, int componentId, MavlinkMaster.ServiceTask listener) {
         super(connection, systemId, componentId, listener);
     }
 

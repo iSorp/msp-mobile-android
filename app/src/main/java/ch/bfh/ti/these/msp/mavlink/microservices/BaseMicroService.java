@@ -25,7 +25,7 @@ public class BaseMicroService<TResult> implements Callable<TResult> {
     private TimeoutTask timeoutTask = new TimeoutTask();
     private volatile boolean timeoutReached;
 
-    protected MavlinkMaster.MavlinkListener listener;
+    protected MavlinkMaster.ServiceTask listener;
     protected int retries = 0;
 
     public BaseMicroService(MavlinkConnection connection) {
@@ -61,12 +61,12 @@ public class BaseMicroService<TResult> implements Callable<TResult> {
         this.result = result;
     }
 
-    public void addListener(MavlinkMaster.MavlinkListener listener) {
+    public void addListener(MavlinkMaster.ServiceTask listener) {
         this.listener = listener;
         listener.addService(this);
     }
 
-    public void removeListener(MavlinkMaster.MavlinkListener listener) {
+    public void removeListener(MavlinkMaster.ServiceTask listener) {
         listener.removeService(this);
     }
 
@@ -99,7 +99,6 @@ public class BaseMicroService<TResult> implements Callable<TResult> {
 
         try {
             retries = 0;
-            exit = false;
             restartTimer();
             while (!exit) {
                 this.message = takeMessage();
@@ -120,6 +119,7 @@ public class BaseMicroService<TResult> implements Callable<TResult> {
             }
         }
         finally {
+            exit = false;
             stopTimer();
         }
 

@@ -29,7 +29,7 @@ public class FtpServiceTest {
         MavlinkConfig config = new MavlinkConfig
                 .Builder(mavlinkBridge)
                 .setTimeout(30000)
-                .setSystemId(1)
+                .setSystemId(2)
                 .setComponentId(1)
                 .build();
 
@@ -50,13 +50,47 @@ public class FtpServiceTest {
     @Test
     public void ftpDownloadServiceTest() throws Exception{
 
-        CompletableFuture compf = master.getFtpService().downloadFile("/home/simon/Develop/msp-onboard/wp0data.json")
+        CompletableFuture compf = master.getFtpService().downloadFile("wp0.json")
                 .thenAccept((a) -> {
                    try (FileOutputStream fos = new FileOutputStream("wp0.json")) {
                         fos.write(a);
                     }
                     catch (Exception e){
 
+                    }
+                })
+                .exceptionally(throwable -> {
+                    Assert.fail(throwable.toString());
+                    return null;
+                });
+        // Wait for completion
+        compf.get();
+    }
+
+    @Test
+    public void ftpListDirServiceTest() throws Exception{
+
+        CompletableFuture compf = master.getFtpService().listDirectory("/")
+                .thenAccept((a) -> {
+                    String dirstring = a;
+                    String[] entries = dirstring.split("\\\\0");
+                    for (String entry: entries) {
+
+                        char type = entry.charAt(0);
+                        switch (type) {
+                            case 'F':
+                                String[] file = entry.split("\\\\t");
+                                file[0] = file[0].substring(1);
+                                System.out.println("File: " + file[0] + " size: " + file[1]);
+                                break;
+                            case 'D':
+                                entry = entry.substring(1);
+                                System.out.println("Directory: " + entry);
+                                break;
+                            case 'S':
+                                System.out.println("skip");
+                                break;
+                        }
                     }
                 })
                 .exceptionally(throwable -> {

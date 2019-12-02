@@ -30,7 +30,7 @@ public class HeartbeatServiceTest {
         MavlinkConfig config = new MavlinkConfig
                 .Builder(mavlinkBridge)
                 .setTimeout(30000)
-                .setSystemId(1)
+                .setSystemId(2)
                 .setComponentId(1)
                 .build();
 
