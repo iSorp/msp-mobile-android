@@ -1,75 +1,33 @@
 <?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              xmlns:tools="http://schemas.android.com/tools"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent"
+              android:orientation="vertical"
+              tools:context=".ui.MissionActivity">
 
-<androidx.constraintlayout.widget.ConstraintLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        xmlns:tools="http://schemas.android.com/tools"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        tools:context=".ui.MissionActivity">
-    <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:gravity="bottom|end"
-            android:id="@+id/layout_mission_main">
-
-
-        <fragment
-                android:name="ch.bfh.ti.these.msp.ui.FpvFragment"
-                android:id="@+id/camera_live_view"
-                tools:ignore="NotSibling"
+        <include
                 android:layout_width="match_parent"
-                android:layout_height="match_parent" tools:layout="@layout/fragment_fpv"/>
-
+                android:layout_height="wrap_content"
+                layout="@layout/toolbar"/>
 
         <LinearLayout
                 android:orientation="horizontal"
                 android:layout_width="match_parent"
-                android:layout_height="38dp">
+                android:layout_height="match_parent">
 
-            <Button
-                    android:text="@string/takeOff"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:id="@+id/btnTakeOff"
-                    android:layout_weight="1"/>
+                <fragment
+                        android:id="@+id/mission_list_fragment"
+                        android:layout_height="match_parent"
+                        android:name="ch.bfh.ti.these.msp.ui.MissionListFragment"
+                        tools:layout="@layout/fragment_mission_list"
+                        android:layout_width="210dp"/>
 
-            <Button
-                    android:text="@string/returnToOrigin"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:id="@+id/btnRetrun"
-                    android:layout_weight="1"/>
-
-            <Button
-                    android:text="@string/landing"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:id="@+id/btnLanding"
-                    android:layout_weight="1"/>
+                <fragment
+                        android:id="@+id/mission_detail_fragment"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:name="ch.bfh.ti.these.msp.ui.MissionDetailFragment"
+                        tools:layout="@layout/fragment_mission_detail"/>
         </LinearLayout>
-
-        <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="38dp"
-                android:orientation="horizontal"
-                android:layout_gravity="end|bottom">
-
-            <TextView
-                    android:layout_width="71dp"
-                    android:layout_height="match_parent"
-                    android:text="@string/status"
-                    android:paddingEnd="10dp"
-                    android:paddingStart="0dp"/>
-
-            <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="match_parent"
-                    android:text="@string/app_name"
-                    android:id="@+id/txtStatus"/>
-        </LinearLayout>
-
-    </LinearLayout>
-
-</androidx.constraintlayout.widget.ConstraintLayout>
+</LinearLayout>
