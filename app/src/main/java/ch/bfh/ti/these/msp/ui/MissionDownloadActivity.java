@@ -4,6 +4,7 @@ import android.widget.Button;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import android.os.Bundle;
+import androidx.appcompat.widget.Toolbar;
 import ch.bfh.ti.these.msp.MspApplication;
 import ch.bfh.ti.these.msp.R;
 import ch.bfh.ti.these.msp.mavlink.MavlinkDirParser;
@@ -26,6 +27,11 @@ public class MissionDownloadActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_mission_download);
+
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        if (toolbar != null) {
+            toolbar.setTitle("Sensor data transfer");
+        }
 
         downloadButton = findViewById(R.id.btn_download_data);
         downloadButton.setEnabled(false);
