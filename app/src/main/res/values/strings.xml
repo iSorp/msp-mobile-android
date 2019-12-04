@@ -26,4 +26,7 @@
     <string name="takeOff">Take Off</string>
     <string name="returnToOrigin">Return To Origin</string>
     <string name="landing">Landing</string>
+
+    <string name="download_data">Download Data</string>
+    <string name="clear_data">Clear Data</string>
 </resources>

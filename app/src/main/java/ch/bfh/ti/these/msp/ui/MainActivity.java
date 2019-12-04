@@ -169,6 +169,9 @@ public class MainActivity extends AppCompatActivity implements
             case R.id.nav_mission:
                 startActivity(new Intent(getApplicationContext(), MissionActivity.class));
                 break;
+            case R.id.nav_mission_download:
+                startActivity(new Intent(getApplicationContext(), MissionDownloadActivity.class));
+                break;
             case R.id.nav_settings:
                 startActivity(new Intent(getApplicationContext(), SettingsActivity.class));
                 break;

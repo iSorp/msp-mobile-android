@@ -25,11 +25,11 @@
                     android:id="@+id/nav_mission"
                     android:title="Mission"/>
             <item
-                    android:id="@+id/nav_ftp"
-                    android:title="File transfer"/>
+                    android:id="@+id/nav_mission_download"
+                    android:title="Sensor data transfer"/>
             <item
                     android:id="@+id/nav_settings"
-                    android:title="Einstellungen"/>
+                    android:title="Settings"/>
         </menu>
     </item>
 
