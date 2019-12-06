@@ -1,5 +1,7 @@
 package ch.bfh.ti.these.msp.ui;
 
+import android.animation.Animator;
+import android.animation.AnimatorListenerAdapter;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -8,6 +10,7 @@ import android.hardware.usb.UsbManager;
 
 import android.os.*;
 import android.view.MenuItem;
+import android.view.View;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
@@ -24,12 +27,18 @@ import ch.bfh.ti.these.msp.DJIApplication;
 import ch.bfh.ti.these.msp.R;
 import ch.bfh.ti.these.msp.mavlink.MavlinkConnectionInfo;
 import ch.bfh.ti.these.msp.mavlink.MavlinkMessageListener;
+import com.google.android.material.bottomappbar.BottomAppBar;
+import com.google.android.material.bottomnavigation.BottomNavigationView;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 
+import com.google.android.material.snackbar.Snackbar;
 import dji.sdk.base.BaseProduct;
 import dji.sdk.products.Aircraft;
 import dji.sdk.sdkmanager.DJISDKManager;
 import io.dronefleet.mavlink.MavlinkMessage;
+
+import java.io.IOException;
 
 import static ch.bfh.ti.these.msp.MspApplication.*;
 
@@ -42,6 +51,7 @@ public class MainActivity extends AppCompatActivity implements
     private NavController navController;
     private AppBarConfiguration appBarConfiguration;
     private TextView statusText;
+    private FloatingActionButton droneActionButton;
 
     private String djiStatus = "-";
     private String mavlinkStatus = "-";
@@ -61,8 +71,7 @@ public class MainActivity extends AppCompatActivity implements
             navController.getGraph().setStartDestination(R.id.nav_frag_fpv);
             navController.popBackStack();
             navController.navigate(R.id.nav_frag_fpv);
-        }
-        else {
+        } else {
             getSupportActionBar().hide();
         }
 
@@ -83,14 +92,14 @@ public class MainActivity extends AppCompatActivity implements
             boolean ret = false;
             BaseProduct product = DJIApplication.getProductInstance();
             if (product != null) {
-                if(product.isConnected()) {
+                if (product.isConnected()) {
                     //The product is connected
                     djiStatus = "OK";//DJIApplication.getProductInstance().getModel() + " Connected";
                     ret = true;
                 } else {
-                    if(product instanceof Aircraft) {
-                        Aircraft aircraft = (Aircraft)product;
-                        if(aircraft.getRemoteController() != null && aircraft.getRemoteController().isConnected()) {
+                    if (product instanceof Aircraft) {
+                        Aircraft aircraft = (Aircraft) product;
+                        if (aircraft.getRemoteController() != null && aircraft.getRemoteController().isConnected()) {
                             // The product is not connected, but the remote controller is connected
                             djiStatus = "only RC Connected";
                             ret = true;
@@ -99,7 +108,7 @@ public class MainActivity extends AppCompatActivity implements
                 }
             }
 
-            if(!ret) {
+            if (!ret) {
                 // The product or the remote controller are not connected.
                 djiStatus = "Disconnected";
             }
@@ -203,6 +212,7 @@ public class MainActivity extends AppCompatActivity implements
         createMavlinkMasterConfig();
         connectAsyncMavlinkMaster();
         getSupportActionBar().show();
+        droneActionButton.show();
         navController.popBackStack();
         navController.navigate(R.id.nav_frag_telemetrie);
     }
@@ -231,8 +241,8 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     private void updateStatusText() {
-        statusText.post(()-> {
-            statusText.setText("Status: " + "DJI-"+ djiStatus + "  MSP-"+ mavlinkStatus);
+        statusText.post(() -> {
+            statusText.setText("Status: " + "DJI-" + djiStatus + "  MSP-" + mavlinkStatus);
         });
     }
 
@@ -260,6 +270,94 @@ public class MainActivity extends AppCompatActivity implements
 
         statusText = findViewById(R.id.toolbar_status);
 
+        FloatingActionButton fabTakeOff = findViewById(R.id.fab_take_off);
+        fabTakeOff.setOnClickListener(v -> {
+            try {
+                getMavlinkMaster().getMissionService().startMission();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+        FloatingActionButton fabPause = findViewById(R.id.fab_pause);
+        fabPause.setOnClickListener(v -> {
+            try {
+                getMavlinkMaster().getMissionService().pauseMission();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        });
+        FabAnimation.init(fabTakeOff);
+        FabAnimation.init(fabPause);
+        droneActionButton = findViewById(R.id.fab_drone_action);
+        droneActionButton.hide();
+        droneActionButton.setOnClickListener(new View.OnClickListener() {
+            boolean isRotate;
+            @Override
+            public void onClick(View v) {
+                isRotate = FabAnimation.rotateFab(v, !isRotate);
+                if (isRotate) {
+                    FabAnimation.showIn(fabTakeOff);
+                    FabAnimation.showIn(fabPause);
+                } else {
+                    FabAnimation.showOut(fabTakeOff);
+                    FabAnimation.showOut(fabPause);
+                }
+            }
+        });
+    }
+
+    private static class FabAnimation {
+
+        static void init(final View v) {
+            v.setVisibility(View.GONE);
+            v.setTranslationY(v.getHeight());
+            v.setAlpha(0f);
+        }
+
+        static void showIn(final View v) {
+            v.setVisibility(View.VISIBLE);
+            v.setAlpha(0f);
+            v.setTranslationY(v.getHeight());
+            v.animate()
+                    .setDuration(200)
+                    .translationY(0)
+                    .setListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            super.onAnimationEnd(animation);
+                        }
+                    })
+                    .alpha(1f)
+                    .start();
+        }
+
+        static void showOut(final View v) {
+            v.setVisibility(View.VISIBLE);
+            v.setAlpha(1f);
+            v.setTranslationY(0);
+            v.animate()
+                    .setDuration(200)
+                    .translationY(v.getHeight())
+                    .setListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            v.setVisibility(View.GONE);
+                            super.onAnimationEnd(animation);
+                        }
+                    }).alpha(0f)
+                    .start();
+        }
+
+        static boolean rotateFab(final View v, boolean rotate) {
+            v.animate().setDuration(200)
+                    .setListener(new AnimatorListenerAdapter() {
+                        @Override
+                        public void onAnimationEnd(Animator animation) {
+                            super.onAnimationEnd(animation);
+                        }
+                    })
+                    .rotation(rotate ? 135f : 0f);
+            return rotate;
+        }
     }
 }
-
