@@ -229,7 +229,7 @@ public class MainActivity extends AppCompatActivity implements
 
     private void updateStatusText() {
         statusText.post(()-> {
-            statusText.setText("Status: " + "DJI "+ djiStatus + "  MSP - "+ mavlinkStatus);
+            statusText.setText("Status: " + "DJI-"+ djiStatus + "  MSP-"+ mavlinkStatus);
         });
     }
 

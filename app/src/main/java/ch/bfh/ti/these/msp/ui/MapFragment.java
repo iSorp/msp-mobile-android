@@ -12,13 +12,14 @@ import ch.bfh.ti.these.msp.DJIApplication;
 import ch.bfh.ti.these.msp.R;
 import com.google.android.gms.location.*;
 import com.google.android.gms.maps.*;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
 import dji.common.flightcontroller.FlightControllerState;
 
-public class VehicleMapFragment extends Fragment implements OnMapReadyCallback {
+public class MapFragment extends Fragment implements OnMapReadyCallback {
 
     int ZOOM_LEVEL=15;
 
@@ -73,17 +74,21 @@ public class VehicleMapFragment extends Fragment implements OnMapReadyCallback {
                     vLatitude = state.getAircraftLocation().getLatitude();
                     vLongitude = state.getAircraftLocation().getLongitude();
 
-                    if (vehicleMarker == null) {
-                        vehicleMarker = googleMap.addMarker(new MarkerOptions()
-                                .position(new LatLng(vLatitude, vLongitude))
-                                .title("Matrice 210"));
-                    }
+                    handler.post(()-> {
+                        if (vehicleMarker == null) {
+                            vehicleMarker = googleMap.addMarker(new MarkerOptions()
+                                    .position(new LatLng(vLatitude, vLongitude))
+                                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.aircraft))
+                                    .title("Matrice 210"));
+                        }
 
-                    if (vehicleMarker != null) {
-                        handler.post(()-> {
-                            vehicleMarker.setPosition(new LatLng(vLatitude, vLongitude));
-                        });
-                    }
+                        if (vehicleMarker != null) {
+                            handler.post(()-> {
+                                vehicleMarker.setPosition(new LatLng(vLatitude, vLongitude));
+                            });
+                        }
+                    });
+
                 } catch (Exception e) {
                     e.printStackTrace();
                 }

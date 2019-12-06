@@ -40,7 +40,6 @@ public class MspApplication extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        //djiApplication.onCreate();
     }
 
     public static void startDjiRegistration() {
@@ -52,13 +51,9 @@ public class MspApplication extends Application {
     }
 
     public static void createMavlinkMasterConfig() {
-        int type = 1;
-        if (DJIApplication.getAircraftInstance() != null) {
-            type = 1;
-        }
-
         MavlinkBridge mavlinkBridge = null;
 
+        boolean udp = false;
         int sport = 0;
         String ip = "";
         int tport = 0;
@@ -68,6 +63,7 @@ public class MspApplication extends Application {
 
         try {
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getInstance().getBaseContext());
+            udp = prefs.getBoolean("udpMavlinkEnable", false);
             sport = Integer.parseInt(prefs.getString("sourcePort", "0"));
             ip = prefs.getString("vehicleAddress", "");
             tport = Integer.parseInt(prefs.getString("vehiclePort", "0"));
@@ -76,6 +72,12 @@ public class MspApplication extends Application {
             timeout = Integer.parseInt(prefs.getString("mavTimeout", "0"));
         }catch (Exception e){
             e.printStackTrace();
+        }
+
+        // Airlink oder udp connection
+        int type = 0;
+        if (!udp && DJIApplication.getAircraftInstance() != null) {
+            type = 1;
         }
 
         if (mavlinkMaster != null) {
