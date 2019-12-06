@@ -136,14 +136,14 @@ public class MavlinkAirlinkBridge implements MavlinkBridge {
         int writePos = 0;
 
         // DJI supports only a data size of 100 bytes per transfere
-        if (data.length > 100) {
+        if (data.length > 300) {
             try {
                 while (writePos < data.length) {
 
                     // wait for callback response (if waiting for response is not necessary the sync can be removed)
                     transfereBuffer.acquire();
 
-                    int length = Math.min(data.length - writePos, 100);
+                    int length = Math.min(data.length - writePos, 300);
                     byte[] buf = new byte[length];
                     System.arraycopy(data, writePos, buf, 0, length);
                     writePos += length;
