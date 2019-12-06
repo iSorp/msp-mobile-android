@@ -48,7 +48,7 @@ public class MissionDownloadActivity extends AppCompatActivity {
         downloadButton.setOnClickListener(v -> new DownloadMissionResult().execute());
         clearButton = findViewById(R.id.btn_clear_data);
         clearButton.setEnabled(false);
-        clearButton.setOnClickListener(v -> clearFiles());
+        clearButton.setOnClickListener(v -> new ClearMissionResult().execute());
         statusText = findViewById(R.id.txt_status);
     }
 
@@ -122,19 +122,6 @@ public class MissionDownloadActivity extends AppCompatActivity {
         return null;
     }
 
-    private void clearFiles() {
-        for (String[] file : fileList) {
-            mavlinkExecCommand(
-                    MavlinkFtpCommand.Clear,
-                    MAVLINK_DATA_DIR + file[0],
-                    (byte[] response) -> {
-                        fileList.remove(file);
-                    }
-            );
-
-        }
-    }
-
     private class DownloadMissionResult extends AsyncTask<Void, Void, MavlinkFtpResult<byte[]>> {
 
         @Override
@@ -168,6 +155,43 @@ public class MissionDownloadActivity extends AppCompatActivity {
             super.onPostExecute(result);
             if (result.status) {
                 statusText.setText("All files downloaded");
+            }
+        }
+    }
+
+    private class ClearMissionResult extends AsyncTask<Void, Void, MavlinkFtpResult<byte[]>> {
+
+        @Override
+        protected MavlinkFtpResult<byte[]> doInBackground(Void... voids) {
+            MavlinkFtpResult<byte[]> result = new MavlinkFtpResult<>();
+            for (String[] file : fileList) {
+                CompletableFuture cf = mavlinkExecCommand(
+                        MavlinkFtpCommand.Clear,
+                        MAVLINK_DATA_DIR + file[0],
+                        (byte[] response) -> {
+                            fileList.remove(file);
+                        },
+                        false
+                );
+                try {
+                    if (cf != null) {
+                        cf.get();
+                    }
+                } catch (InterruptedException | ExecutionException e){
+                    result.status = false;
+                    result.msgs.add(
+                            String.format(Locale.ENGLISH, "Execution of file %s was interrupted", file[0])
+                    );
+                }
+            }
+            return result;
+        }
+
+        @Override
+        protected void onPostExecute(MavlinkFtpResult<byte[]> result) {
+            super.onPostExecute(result);
+            if (result.status) {
+                statusText.setText("All files cleared");
             }
         }
     }
