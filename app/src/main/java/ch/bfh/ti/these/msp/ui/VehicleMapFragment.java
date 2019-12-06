@@ -10,7 +10,7 @@ import ch.bfh.ti.these.msp.mavlink.MavlinkMessageListener;
 import io.dronefleet.mavlink.MavlinkMessage;
 
 
-public class MapFragment extends Fragment {
+public class MyMapFragment extends MapFragment {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
