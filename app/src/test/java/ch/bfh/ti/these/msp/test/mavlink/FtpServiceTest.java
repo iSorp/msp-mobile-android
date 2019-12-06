@@ -50,7 +50,7 @@ public class FtpServiceTest {
     @Test
     public void ftpDownloadServiceTest() throws Exception{
 
-        CompletableFuture compf = master.getFtpService().downloadFile("wp0.json")
+        CompletableFuture compf = master.getFtpService().downloadFile("wp1.json")
                 .thenAccept((a) -> {
                    try (FileOutputStream fos = new FileOutputStream("wp0.json")) {
                         fos.write(a);

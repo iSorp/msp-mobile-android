@@ -3,11 +3,10 @@ package ch.bfh.ti.these.msp.ui;
 import android.app.Service;
 import android.graphics.SurfaceTexture;
 import android.os.Bundle;
-import android.view.LayoutInflater;
-import android.view.TextureView;
-import android.view.View;
-import android.view.ViewGroup;
+import android.view.*;
 
+import androidx.appcompat.app.ActionBar;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.fragment.app.Fragment;
 import ch.bfh.ti.these.msp.R;
 import ch.bfh.ti.these.msp.mavlink.MavlinkMessageListener;
@@ -17,14 +16,13 @@ import dji.sdk.codec.DJICodecManager;
 import io.dronefleet.mavlink.MavlinkMessage;
 
 
-public class FpvFragment extends Fragment implements TextureView.SurfaceTextureListener {
+public class FpvFragment extends Fragment implements TextureView.SurfaceTextureListener, VideoFeeder.VideoDataListener {
     private VideoFeeder.VideoDataListener videoDataListener = null;
     private DJICodecManager codecManager = null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setupView();
     }
 
     @Override
@@ -36,15 +34,17 @@ public class FpvFragment extends Fragment implements TextureView.SurfaceTextureL
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
+        setupView();
 
-        /*if (context instanceof Activity){
-            this.listener = (FragmentActivity) context;
-        }*/
+        if (VideoFeeder.getInstance() != null)
+            VideoFeeder.getInstance().getSecondaryVideoFeed().addVideoDataListener(this);
     }
 
     @Override
     public void onDetach() {
         super.onDetach();
+        if (VideoFeeder.getInstance() != null)
+            VideoFeeder.getInstance().getSecondaryVideoFeed().removeVideoDataListener(this);
     }
 
 
@@ -79,33 +79,31 @@ public class FpvFragment extends Fragment implements TextureView.SurfaceTextureL
     }
 
     private void setupView() {
-        LayoutInflater layoutInflater = (LayoutInflater) getContext().getSystemService(Service.LAYOUT_INFLATER_SERVICE);
+        TextureView mVideoSurface = getActivity().findViewById(R.id.texture_video_previewer_surface);
+        mVideoSurface.setSurfaceTextureListener(this);
 
+        mVideoSurface.setOnTouchListener((View v, MotionEvent event) -> {
+            ActionBar actionBar = ((AppCompatActivity)getActivity()).getSupportActionBar();
+            if (actionBar == null) return false;
 
-        TextureView mVideoSurface = (TextureView) getActivity().findViewById(R.id.texture_video_previewer_surface);
-
-        if (null != mVideoSurface) {
-            mVideoSurface.setSurfaceTextureListener(this);
-
-            videoDataListener = new VideoFeeder.VideoDataListener() {
-                @Override
-                public void onReceive(byte[] bytes, int size) {
-                    if (null != codecManager) {
-                        codecManager.sendDataToDecoder(bytes,
-                                size,
-                                UsbAccessoryService.VideoStreamSource.Fpv.getIndex());
-                    }
+            if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                if (actionBar.isShowing()) {
+                    actionBar.hide();
+                } else {
+                    actionBar.show();
                 }
-            };
-        }
-
-        initSDKCallback();
+                return true;
+            } else return false;
+        });
     }
 
-    private void initSDKCallback() {
-        try {
-            VideoFeeder.getInstance().getSecondaryVideoFeed().addVideoDataListener(videoDataListener);
-        } catch (Exception ignored) {
+    @Override
+    public void onReceive(byte[] bytes, int size) {
+        if (null != codecManager) {
+            codecManager.sendDataToDecoder(bytes,
+                    size,
+                    UsbAccessoryService.VideoStreamSource.Fpv.getIndex());
         }
     }
+
 }

@@ -1,8 +1,12 @@
 package ch.bfh.ti.these.msp.ui;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.usb.UsbManager;
 
+import android.os.*;
 import android.view.MenuItem;
 import android.widget.TextView;
 import androidx.annotation.NonNull;
@@ -10,24 +14,22 @@ import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 
-import android.os.Bundle;
-
 import androidx.core.view.GravityCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
-import ch.bfh.ti.these.msp.MspApplication;
+import ch.bfh.ti.these.msp.DJIApplication;
 import ch.bfh.ti.these.msp.R;
 import ch.bfh.ti.these.msp.mavlink.MavlinkConnectionInfo;
 import ch.bfh.ti.these.msp.mavlink.MavlinkMessageListener;
 import com.google.android.material.navigation.NavigationView;
 
-import dji.sdk.airlink.AirLink;
+import dji.sdk.base.BaseProduct;
+import dji.sdk.products.Aircraft;
 import dji.sdk.sdkmanager.DJISDKManager;
 import io.dronefleet.mavlink.MavlinkMessage;
-
 
 import static ch.bfh.ti.these.msp.MspApplication.*;
 
@@ -35,8 +37,7 @@ import static ch.bfh.ti.these.msp.MspApplication.*;
 public class MainActivity extends AppCompatActivity implements
         MavlinkMessageListener,
         NavigationView.OnNavigationItemSelectedListener,
-        RegisterFragment.OnRegisterCompleteListener,
-        AirLink.BaseStationSignalQualityUpdatedCallback {
+        RegisterFragment.OnRegisterCompleteListener {
 
     private NavController navController;
     private AppBarConfiguration appBarConfiguration;
@@ -44,6 +45,10 @@ public class MainActivity extends AppCompatActivity implements
 
     private String djiStatus = "-";
     private String mavlinkStatus = "-";
+
+    private static final String TAG = MainActivity.class.getName();
+    public static final String FLAG_CONNECTION_CHANGE = "dji_sdk_connection_change";
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,19 +66,52 @@ public class MainActivity extends AppCompatActivity implements
             getSupportActionBar().hide();
         }
 
-
-        if (MspApplication.getProductInstance() != null)
-            MspApplication.getProductInstance().getAirLink().addBaseStationSignalQualityUpdatedCallback(this);
+        // Register the broadcast receiver for receiving the device connection's changes.
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(DJIApplication.FLAG_CONNECTION_CHANGE);
+        registerReceiver(djiReceiver, filter);
 
         getMavlinkMaster().addMessageListener(this);
     }
 
+
+    protected BroadcastReceiver djiReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+
+            boolean ret = false;
+            BaseProduct product = DJIApplication.getProductInstance();
+            if (product != null) {
+                if(product.isConnected()) {
+                    //The product is connected
+                    djiStatus = "OK";//DJIApplication.getProductInstance().getModel() + " Connected";
+                    ret = true;
+                } else {
+                    if(product instanceof Aircraft) {
+                        Aircraft aircraft = (Aircraft)product;
+                        if(aircraft.getRemoteController() != null && aircraft.getRemoteController().isConnected()) {
+                            // The product is not connected, but the remote controller is connected
+                            djiStatus = "only RC Connected";
+                            ret = true;
+                        }
+                    }
+                }
+            }
+
+            if(!ret) {
+                // The product or the remote controller are not connected.
+                djiStatus = "Disconnected";
+            }
+            updateStatusText();
+        }
+    };
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        unregisterReceiver(djiReceiver);
         getMavlinkMaster().removeMessageListener(this);
-        if (MspApplication.getProductInstance() != null)
-            MspApplication.getProductInstance().getAirLink().removeBaseStationSignalQualityUpdatedCallback(this);
     }
 
     @Override
@@ -149,7 +187,7 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public void connectionStatusChanged(MavlinkConnectionInfo info) {
         if (info.isConnected())
-            mavlinkStatus = "ok";
+            mavlinkStatus = "OK";
         else
             mavlinkStatus = "-";
 
@@ -167,6 +205,18 @@ public class MainActivity extends AppCompatActivity implements
     }
 
     @Override
+    public void onProductConnect() {
+        djiStatus = "Product connected";
+        updateStatusText();
+    }
+
+    @Override
+    public void onProductDisconnect() {
+        djiStatus = "Product disconnected";
+        updateStatusText();
+    }
+
+    @Override
     protected void onNewIntent(@NonNull Intent intent) {
         String action = intent.getAction();
         if (UsbManager.ACTION_USB_ACCESSORY_ATTACHED.equals(action)) {
@@ -177,15 +227,9 @@ public class MainActivity extends AppCompatActivity implements
         super.onNewIntent(intent);
     }
 
-    @Override
-    public void onBaseStationSignalQualityUpdated(int value) {
-        djiStatus = String.valueOf(value);
-        updateStatusText();
-    }
-
     private void updateStatusText() {
         statusText.post(()-> {
-            statusText.setText("Status: " + "DJI - "+ djiStatus + "MSP - "+ mavlinkStatus);
+            statusText.setText("Status: " + "DJI "+ djiStatus + "  MSP - "+ mavlinkStatus);
         });
     }
 
