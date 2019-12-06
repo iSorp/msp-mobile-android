@@ -78,7 +78,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
                         if (vehicleMarker == null) {
                             vehicleMarker = googleMap.addMarker(new MarkerOptions()
                                     .position(new LatLng(vLatitude, vLongitude))
-                                    .icon(BitmapDescriptorFactory.fromResource(R.drawable.aircraft))
                                     .title("Matrice 210"));
                         }
 
