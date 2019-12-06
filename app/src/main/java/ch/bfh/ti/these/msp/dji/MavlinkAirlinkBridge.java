@@ -1,19 +1,27 @@
 package ch.bfh.ti.these.msp.dji;
 
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.view.View;
+import ch.bfh.ti.these.msp.DJIApplication;
+import ch.bfh.ti.these.msp.MspApplication;
 import ch.bfh.ti.these.msp.mavlink.MavlinkBridge;
 import dji.common.error.DJIError;
 import dji.common.util.CommonCallbacks;
+import dji.sdk.base.BaseProduct;
 import dji.sdk.flightcontroller.FlightController;
 import dji.sdk.products.Aircraft;
+import dji.sdk.sdkmanager.DJISDKManager;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.Semaphore;
 
-import static ch.bfh.ti.these.msp.MspApplication.getProductInstance;
 
-public class MavlinkAirlinkBridge implements MavlinkBridge, FlightController.OnboardSDKDeviceDataCallback, CommonCallbacks.CompletionCallback {
+public class MavlinkAirlinkBridge implements MavlinkBridge {
 
     private Aircraft aircraft;
 
@@ -26,16 +34,44 @@ public class MavlinkAirlinkBridge implements MavlinkBridge, FlightController.Onb
     private int readPos = -1;
 
     public MavlinkAirlinkBridge() {
-        aircraft = (Aircraft)getProductInstance();
+
+        // Register the broadcast receiver for receiving the device connection's changes.
+        IntentFilter filter = new IntentFilter();
+        filter.addAction(DJIApplication.FLAG_CONNECTION_CHANGE);
+        MspApplication.getInstance().registerReceiver(djiReceiver, filter);
+
+        aircraft = DJIApplication.getAircraftInstance();
     }
 
     public void connect() {
-        aircraft.getFlightController().setOnboardSDKDeviceDataCallback(this);
+        if (DJIApplication.isAircraftConnected()) {
+            aircraft.getFlightController().setOnboardSDKDeviceDataCallback(sdkDeviceDataCallback);
+        }
     }
 
     public void disconnect() {
-        aircraft.getFlightController().setOnboardSDKDeviceDataCallback(null);
+        if (DJIApplication.isAircraftConnected()) {
+            aircraft.getFlightController().setOnboardSDKDeviceDataCallback(null);
+        }
     }
+
+    private BroadcastReceiver djiReceiver = new BroadcastReceiver() {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(DJIApplication.FLAG_CONNECTION_CHANGE)) {
+                Aircraft aircraft = DJIApplication.getAircraftInstance();
+                if (aircraft != null) {
+                    if(aircraft.isConnected()) {
+                        aircraft.getFlightController().setOnboardSDKDeviceDataCallback(sdkDeviceDataCallback);
+                    }
+                    else {
+                        aircraft.getFlightController().setOnboardSDKDeviceDataCallback(null);
+                    }
+                }
+            }
+        }
+    };
 
     public InputStream getInputStream() {
         return this.is;
@@ -62,7 +98,7 @@ public class MavlinkAirlinkBridge implements MavlinkBridge, FlightController.Onb
 
                 if (buffer.length > 0) {
                     empty = false;
-                    readPos   = 0;
+                    readPos = 0;
                 }
             }
 
@@ -73,7 +109,7 @@ public class MavlinkAirlinkBridge implements MavlinkBridge, FlightController.Onb
 
                 if (readPos >= buffer.length) {
                     empty = true;
-                    readPos   = -1;
+                    readPos = -1;
                     writeBuffer.release();
                 }
             }
@@ -85,7 +121,8 @@ public class MavlinkAirlinkBridge implements MavlinkBridge, FlightController.Onb
 
     private OutputStream os = new OutputStream() {
         @Override
-        public void write(int data) throws IOException { }
+        public void write(int data) throws IOException {
+        }
 
         @Override
         public void write(byte b[]) throws IOException {
@@ -94,6 +131,8 @@ public class MavlinkAirlinkBridge implements MavlinkBridge, FlightController.Onb
     };
 
     private void send(byte[] data) {
+        if (aircraft == null) return;
+
         int writePos = 0;
 
         // DJI supports only a data size of 100 bytes per transfere
@@ -108,34 +147,32 @@ public class MavlinkAirlinkBridge implements MavlinkBridge, FlightController.Onb
                     byte[] buf = new byte[length];
                     System.arraycopy(data, writePos, buf, 0, length);
                     writePos += length;
-                    aircraft.getFlightController().sendDataToOnboardSDKDevice(buf, this);
+                    aircraft.getFlightController().sendDataToOnboardSDKDevice(buf, completionCallback);
                 }
-            }
-            catch (InterruptedException e) {
+            } catch (InterruptedException e) {
                 e.printStackTrace();
             }
-        }
-        else {
-            aircraft.getFlightController().sendDataToOnboardSDKDevice(data, this);
+        } else {
+            aircraft.getFlightController().sendDataToOnboardSDKDevice(data, completionCallback);
         }
     }
 
-    @Override
-    public void onReceive(byte[] bytes) {
 
+    private FlightController.OnboardSDKDeviceDataCallback sdkDeviceDataCallback = (byte[] data) -> {
         try {
             writeBuffer.acquire();
-            buffer = bytes;
+            buffer = data;
             readBuffer.release();
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
-    }
+    };
 
-    @Override
-    public void onResult(DJIError djiError) {
-        System.out.println(djiError.getDescription());
+    private CommonCallbacks.CompletionCallback completionCallback = (DJIError djiError) -> {
+
+        if (djiError != null)
+            System.out.println(djiError.getDescription());
         if (transfereBuffer.availablePermits() == 0)
             transfereBuffer.release();
-    }
+    };
 }

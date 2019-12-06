@@ -12,77 +12,48 @@ import ch.bfh.ti.these.msp.mavlink.MavlinkConfig;
 import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
 import ch.bfh.ti.these.msp.mavlink.MavlinkUdpBridge;
 
-import dji.sdk.base.BaseProduct;
-import dji.sdk.products.Aircraft;
-import dji.sdk.products.HandHeld;
-import dji.sdk.sdkmanager.BluetoothProductConnector;
-import dji.sdk.sdkmanager.DJISDKManager;
+import com.secneo.sdk.Helper;
+
 
 /**
  * Main application
  */
 public class MspApplication extends Application {
 
-    public static final String TAG = MspApplication.class.getName();
-
-    private static BaseProduct product;
-    private static Application app = null;
+    private static MspApplication instance;
     private static MavlinkMaster mavlinkMaster;
-    private static BluetoothProductConnector bluetoothConnector = null;
 
-    public static Application getInstance() {
-        return MspApplication.app;
-    }
+    private DJIApplication djiApplication;
 
-    /**
-     * Gets instance of the specific product connected after the
-     * API KEY is successfully validated. Please make sure the
-     * API_KEY has been added in the Manifest
-     */
-    public static synchronized BaseProduct getProductInstance() {
-        product = DJISDKManager.getInstance().getProduct();
-        return product;
-    }
-
-    public static synchronized BluetoothProductConnector getBluetoothProductConnector() {
-        bluetoothConnector = DJISDKManager.getInstance().getBluetoothProductConnector();
-        return bluetoothConnector;
-    }
-
-    public static boolean isAircraftConnected() {
-        return getProductInstance() != null && getProductInstance() instanceof Aircraft;
-    }
-
-    public static boolean isHandHeldConnected() {
-        return getProductInstance() != null && getProductInstance() instanceof HandHeld;
-    }
-
-    public static synchronized Aircraft getAircraftInstance() {
-        if (!isAircraftConnected()) {
-            return null;
-        }
-        return (Aircraft) getProductInstance();
-    }
-
-    public static synchronized HandHeld getHandHeldInstance() {
-        if (!isHandHeldConnected()) {
-            return null;
-        }
-        return (HandHeld) getProductInstance();
-    }
 
     @Override
     protected void attachBaseContext(Context paramContext) {
         super.attachBaseContext(paramContext);
-        //MultiDex.install(this);
-        com.secneo.sdk.Helper.install(this);
-        app = this;
+        instance = this;
+        Helper.install(MspApplication.this);
+       if (djiApplication == null) {
+            djiApplication = new DJIApplication();
+            djiApplication.setContext(this);
+        }
     }
 
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        //djiApplication.onCreate();
+    }
+
+    public static void startDjiRegistration() {
+        instance.djiApplication.onCreate();
+    }
+
+    public static Application getInstance() {
+        return MspApplication.instance;
+    }
 
     public static void createMavlinkMasterConfig() {
-        int type = 0;
-        if (getAircraftInstance() != null) {
+        int type = 1;
+        if (DJIApplication.getAircraftInstance() != null) {
             type = 1;
         }
 
@@ -130,7 +101,6 @@ public class MspApplication extends Application {
                 .setComponentId(compId)
                 .build());
     }
-
     public static void connectAsyncMavlinkMaster() {
 
         AsyncTask.execute(() -> {
@@ -140,7 +110,6 @@ public class MspApplication extends Application {
             }
         });
     }
-
     public static MavlinkMaster getMavlinkMaster() {
         if (mavlinkMaster == null)
             mavlinkMaster = new MavlinkMaster(null);

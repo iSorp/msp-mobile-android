@@ -78,7 +78,7 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content" android:id="@+id/textViewSpeedValue" android:textSize="24sp"/>
             <TextView
-                    android:text="km/h"
+                    android:text="m/s"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content" android:textSize="24sp"/>
         </TableRow>
@@ -89,7 +89,7 @@
                     android:layout_height="wrap_content" android:id="@+id/textViewPosText" android:textSize="24sp"/>
             <TextView
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" android:id="@+id/textViewPosValue" android:textSize="24sp"
+                    android:layout_height="wrap_content" android:id="@+id/textViewPosNValue" android:textSize="24sp"
                     android:text="46°14′06.70″N"/>
         </TableRow>
         <TableRow android:layout_height="wrap_content" android:layout_width="200dp">
@@ -99,7 +99,7 @@
             <TextView
                     android:text="8°0′55.60″O"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" android:id="@+id/textView14" android:textSize="24sp"/>
+                    android:layout_height="wrap_content" android:id="@+id/textViewPosOValue" android:textSize="24sp"/>
         </TableRow>
     </TableLayout>
 
