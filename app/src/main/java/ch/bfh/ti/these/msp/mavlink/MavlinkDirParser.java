@@ -9,12 +9,8 @@ public class MavlinkDirParser {
         return parseString(responseString, MavlinkFileType.File).size();
     }
 
-    public static int countSubFolders(String responseString) {
-        return parseString(responseString, MavlinkFileType.Folder).size();
-    }
-
-    public static int getFiles(String responseString) {
-        return parseString(responseString, MavlinkFileType.File).size();
+    public static List<String[]> getFiles(String responseString) {
+        return parseString(responseString, MavlinkFileType.File);
     }
 
     private static List<String[]> parseString(String responseString, MavlinkFileType typeFilter) {

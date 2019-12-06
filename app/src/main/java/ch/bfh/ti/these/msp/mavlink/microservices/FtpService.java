@@ -2,7 +2,6 @@ package ch.bfh.ti.these.msp.mavlink.microservices;
 
 import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
 
-import com.qx.wz.dj.rtcm.StringUtil;
 import io.dronefleet.mavlink.MavlinkConnection;
 import io.dronefleet.mavlink.common.FileTransferProtocol;
 
@@ -10,8 +9,6 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
-import java.sql.Array;
-import java.util.ArrayList;
 import java.util.concurrent.CompletableFuture;
 
 import static ch.bfh.ti.these.msp.mavlink.microservices.FtpMessage. *;
@@ -33,7 +30,7 @@ public class FtpService extends BaseService {
      * @return
      * @throws IOException
      */
-    public CompletableFuture<String> listDirectory(String path) throws IOException {
+    public <T> CompletableFuture<T> listDirectory(String path) throws IOException {
         return runAsync(new ListDirectoryService(this.connection, path));
     }
 
@@ -43,7 +40,7 @@ public class FtpService extends BaseService {
      * @return file as byte[]
      * @throws IOException
      */
-    public CompletableFuture<byte[]> downloadFile(String filePath) throws IOException {
+    public <T> CompletableFuture<T> downloadFile(String filePath) throws IOException {
         return runAsync(new FileDownloadService(this.connection, filePath));
     }
 
@@ -53,7 +50,7 @@ public class FtpService extends BaseService {
      * @return success state
      * @throws IOException
      */
-    public CompletableFuture<byte[]> deletedFile(String filePath) throws IOException {
+    public <T> CompletableFuture<T> deletedFile(String filePath) throws IOException {
         return runAsync(new DeleteFileService(this.connection, filePath));
     }
 
