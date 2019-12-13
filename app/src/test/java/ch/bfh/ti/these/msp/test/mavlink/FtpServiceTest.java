@@ -15,6 +15,7 @@ import org.junit.Test;
 import java.io.FileOutputStream;
 
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 
 public class FtpServiceTest {

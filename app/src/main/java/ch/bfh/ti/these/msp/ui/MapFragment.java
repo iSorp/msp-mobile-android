@@ -54,40 +54,36 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
         super.onViewCreated(view, savedInstanceState);
         handler = new Handler(Looper.getMainLooper());
+        mapView.onCreate(savedInstanceState);
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        mapView.onResume();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(getActivity());
 
         LocationRequest locationRequest = LocationRequest.create();
         locationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
         locationRequest.setInterval(20 * 1000);
 
-        fusedLocationClient.requestLocationUpdates(locationRequest, locationCallback, Looper.myLooper());
-
         mapView.getMapAsync(this);
-        mapView.onCreate(savedInstanceState);
-        mapView.onResume();
+        mapView.onStart();
+
 
         if (DJIApplication.isAircraftConnected()) {
             DJIApplication.getAircraftInstance().getFlightController().setStateCallback((FlightControllerState state)-> {
                 try {
-                    if (state == null) return;
+                    //if (state == null) return;
 
                     vLatitude = state.getAircraftLocation().getLatitude();
                     vLongitude = state.getAircraftLocation().getLongitude();
-
-                    handler.post(()-> {
-                        if (vehicleMarker == null) {
-                            vehicleMarker = googleMap.addMarker(new MarkerOptions()
-                                    .position(new LatLng(vLatitude, vLongitude))
-                                    .title("Matrice 210"));
-                        }
-
-                        if (vehicleMarker != null) {
-                            handler.post(()-> {
-                                vehicleMarker.setPosition(new LatLng(vLatitude, vLongitude));
-                            });
-                        }
-                    });
-
+                    updateDroneLocation();
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -96,9 +92,13 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     }
 
     @Override
-    public void onResume() {
-        super.onResume();
-        mapView.onResume();
+    public void onStop() {
+        super.onStop();
+        mapView.onStop();
+        fusedLocationClient.removeLocationUpdates(locationCallback);
+            if (DJIApplication.isAircraftConnected()) {
+            DJIApplication.getAircraftInstance().getFlightController().setStateCallback(null);
+        }
     }
 
     @Override
@@ -114,7 +114,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
 
         fusedLocationClient.removeLocationUpdates(locationCallback);
         if (DJIApplication.isAircraftConnected()) {
-            DJIApplication.getAircraftInstance().getFlightController().setStateCallback(null);
+            //DJIApplication.getAircraftInstance().getFlightController().setStateCallback(null);
         }
     }
 
@@ -133,8 +133,7 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         googleMap.setMyLocationEnabled(true);
 
         fusedLocationClient.getLastLocation().addOnSuccessListener(getActivity(), location -> {
-            CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(
-                    new LatLng(mLatitude, mLongitude), ZOOM_LEVEL);
+            CameraUpdate cameraUpdate = CameraUpdateFactory.newLatLngZoom(new LatLng(mLatitude, mLongitude), ZOOM_LEVEL);
             googleMap.animateCamera(cameraUpdate);
         });
     }
@@ -144,6 +143,22 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             mLatitude = location.getLatitude();
             mLongitude = location.getLongitude();
         }
+    }
+
+    private void updateDroneLocation() {
+        LatLng pos = new LatLng(vLatitude, vLongitude);
+        // Create MarkerOptions object
+        final MarkerOptions markerOptions = new MarkerOptions();
+        markerOptions.title("Matrice 210");
+        markerOptions.position(pos);
+
+        getActivity().runOnUiThread(() ->{
+
+            if (vehicleMarker != null) {
+                vehicleMarker.remove();
+            }
+            vehicleMarker = googleMap.addMarker(markerOptions);
+        });
     }
 
     LocationCallback locationCallback = new LocationCallback() {

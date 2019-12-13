@@ -94,13 +94,13 @@ public class MissionDownloadActivity extends AppCompatActivity {
                 final FtpService ftpService = mavlinkMaster.getFtpService();
                 switch (command) {
                     case ListDir:
-                        future = ftpService.listDirectory(arg);
+                        future = (CompletableFuture<T>)ftpService.listDirectory(arg);
                         break;
                     case Download:
-                        future = ftpService.downloadFile(arg);
+                        future = (CompletableFuture<T>)ftpService.downloadFile(arg);
                         break;
                     case Clear:
-                        future = ftpService.deletedFile(arg);
+                        future = (CompletableFuture<T>)ftpService.deletedFile(arg);
                         break;
                     default:
                         return null;

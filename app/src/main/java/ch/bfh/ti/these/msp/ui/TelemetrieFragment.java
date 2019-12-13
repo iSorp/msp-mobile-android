@@ -44,7 +44,7 @@ public class TelemetrieFragment extends Fragment implements MavlinkMessageListen
     double longitude = 0;
 
 
-    private static DecimalFormat df4 = new DecimalFormat("#.####");
+    private static DecimalFormat df4 = new DecimalFormat("#.#####");
 
 
     @Override
@@ -58,9 +58,14 @@ public class TelemetrieFragment extends Fragment implements MavlinkMessageListen
 
         handler = new Handler(Looper.getMainLooper());
         setupView();
+    }
+
+    @Override
+    public void onStart() {
+        super.onStart();
         getMavlinkMaster().addMessageListener(this);
 
-        if (DJIApplication.isAircraftConnected() && DJIApplication.getProductInstance().getBattery() != null) {
+        if (DJIApplication.isAircraftConnected()) {
             DJIApplication.getProductInstance().getBattery().setStateCallback((BatteryState state) -> {
                 try {
                     if (state == null) return;
@@ -68,7 +73,7 @@ public class TelemetrieFragment extends Fragment implements MavlinkMessageListen
                     voltage = state.getVoltage();
                     current = state.getCurrent() * -1;
 
-                    handler.post(()->{
+                    textViewBatteryVoltage.post(()->{
                         textViewBatteryVoltage.setText(String.valueOf(voltage));
                         textViewBatteryCurrent.setText(String.valueOf(current));
                     });
@@ -86,7 +91,7 @@ public class TelemetrieFragment extends Fragment implements MavlinkMessageListen
                     latitude = state.getAircraftLocation().getLatitude();
                     longitude = state.getAircraftLocation().getLongitude();
 
-                    handler.post(()->{
+                    textViewHeightValue.post(()->{
                         textViewHeightValue.setText(String.valueOf(altitude));
                         textViewSpeedValue.setText(df4.format(velocity));
                         textViewPosNValue.setText("N " + df4.format(latitude));
@@ -105,8 +110,8 @@ public class TelemetrieFragment extends Fragment implements MavlinkMessageListen
         getMavlinkMaster().removeMessageListener(this);
 
         if (DJIApplication.isAircraftConnected()) {
-            DJIApplication.getProductInstance().getBattery().setStateCallback(null);
-            DJIApplication.getAircraftInstance().getFlightController().setStateCallback(null);
+            //DJIApplication.getProductInstance().getBattery().setStateCallback(null);
+            //DJIApplication.getAircraftInstance().getFlightController().setStateCallback(null);
         }
     }
 

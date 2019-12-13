@@ -161,7 +161,6 @@ public class RegisterFragment extends Fragment {
             if (intent.getAction().equals(DJIApplication.FLAG_REGISTER_CHANGE)) {
                 if (DJISDKManager.getInstance().hasSDKRegistered()) {
                     setStatusTextAsync("Register Success");
-                    getListener().onRegisterComplete();
                 }
                 else {
                     setStatusTextAsync("Register sdk fails, check network is available");
@@ -181,6 +180,7 @@ public class RegisterFragment extends Fragment {
                         progressBar.setProgress(0);
 
                     }, 1000);
+                    getListener().onRegisterComplete();
                 }
             }
         }

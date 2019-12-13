@@ -12,6 +12,7 @@ import android.os.*;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
@@ -48,6 +49,7 @@ public class MainActivity extends AppCompatActivity implements
         NavigationView.OnNavigationItemSelectedListener,
         RegisterFragment.OnRegisterCompleteListener {
 
+    private Handler handler;
     private NavController navController;
     private AppBarConfiguration appBarConfiguration;
     private TextView statusText;
@@ -64,6 +66,8 @@ public class MainActivity extends AppCompatActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        handler = new Handler(Looper.getMainLooper());
         setupView();
         updateStatusText();
 
@@ -273,7 +277,14 @@ public class MainActivity extends AppCompatActivity implements
         FloatingActionButton fabTakeOff = findViewById(R.id.fab_take_off);
         fabTakeOff.setOnClickListener(v -> {
             try {
-                getMavlinkMaster().getMissionService().startMission();
+                getMavlinkMaster().getMissionService().startMission()
+                        .thenAccept(res -> {
+                            showToast("Mission start successful");
+                        })
+                        .exceptionally(throwable -> {
+                            showToast("Mission start failed");
+                            return null;
+                        });
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -281,7 +292,14 @@ public class MainActivity extends AppCompatActivity implements
         FloatingActionButton fabPause = findViewById(R.id.fab_pause);
         fabPause.setOnClickListener(v -> {
             try {
-                getMavlinkMaster().getMissionService().pauseMission();
+                getMavlinkMaster().getMissionService().pauseMission()
+                        .thenAccept(res -> {
+                            Toast.makeText(MainActivity.this.getApplicationContext(), "Mission paused successful", Toast.LENGTH_LONG);
+                        })
+                        .exceptionally(throwable -> {
+                            Toast.makeText(MainActivity.this.getApplicationContext(), "Mission paused failed", Toast.LENGTH_LONG);
+                            return null;
+                        });
             } catch (IOException e) {
                 e.printStackTrace();
             }
@@ -359,5 +377,11 @@ public class MainActivity extends AppCompatActivity implements
                     .rotation(rotate ? 135f : 0f);
             return rotate;
         }
+    }
+
+    private void showToast(String text) {
+        handler.post(()-> {
+            Toast.makeText(this, text, Toast.LENGTH_LONG);
+        });
     }
 }

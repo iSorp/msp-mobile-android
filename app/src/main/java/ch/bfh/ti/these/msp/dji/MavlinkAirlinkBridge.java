@@ -19,6 +19,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.Semaphore;
+import java.util.concurrent.TimeUnit;
+
+import static ch.bfh.ti.these.msp.util.Definitions.OSDK_DATA_MAX_SIZE;
 
 
 public class MavlinkAirlinkBridge implements MavlinkBridge {
@@ -119,6 +122,17 @@ public class MavlinkAirlinkBridge implements MavlinkBridge {
 
     };
 
+    private FlightController.OnboardSDKDeviceDataCallback sdkDeviceDataCallback = (byte[] data) -> {
+        try {
+            if (writeBuffer.tryAcquire(100, TimeUnit.MILLISECONDS)) {
+                buffer = data;
+                readBuffer.release();
+            }
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    };
+
     private OutputStream os = new OutputStream() {
         @Override
         public void write(int data) throws IOException {
@@ -135,15 +149,14 @@ public class MavlinkAirlinkBridge implements MavlinkBridge {
 
         int writePos = 0;
 
-        // DJI supports only a data size of 100 bytes per transfere
-        if (data.length > 300) {
+        if (data.length > OSDK_DATA_MAX_SIZE) {
             try {
                 while (writePos < data.length) {
 
                     // wait for callback response (if waiting for response is not necessary the sync can be removed)
                     transfereBuffer.acquire();
 
-                    int length = Math.min(data.length - writePos, 300);
+                    int length = Math.min(data.length - writePos, OSDK_DATA_MAX_SIZE);
                     byte[] buf = new byte[length];
                     System.arraycopy(data, writePos, buf, 0, length);
                     writePos += length;
@@ -156,17 +169,6 @@ public class MavlinkAirlinkBridge implements MavlinkBridge {
             aircraft.getFlightController().sendDataToOnboardSDKDevice(data, completionCallback);
         }
     }
-
-
-    private FlightController.OnboardSDKDeviceDataCallback sdkDeviceDataCallback = (byte[] data) -> {
-        try {
-            writeBuffer.acquire();
-            buffer = data;
-            readBuffer.release();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        }
-    };
 
     private CommonCallbacks.CompletionCallback completionCallback = (DJIError djiError) -> {
 
