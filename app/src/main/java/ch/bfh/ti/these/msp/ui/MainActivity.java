@@ -38,6 +38,8 @@ import dji.sdk.base.BaseProduct;
 import dji.sdk.products.Aircraft;
 import dji.sdk.sdkmanager.DJISDKManager;
 import io.dronefleet.mavlink.MavlinkMessage;
+import io.dronefleet.mavlink.common.Heartbeat;
+import io.dronefleet.mavlink.common.MissionItemReached;
 
 import java.io.IOException;
 
@@ -197,7 +199,21 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void messageReceived(MavlinkMessage message) {
+        if (message.getPayload() instanceof MissionItemReached) {
+            MavlinkMessage<MissionItemReached> msg = (MavlinkMessage<MissionItemReached>)message;
+            short seq =  (short)msg.getPayload().seq();
+            if (seq < 0) {
+                mavlinkStatus = "OK";
+                updateStatusText();
+                showToast("Mission completed");
+            }
 
+            if (seq >= 0) {
+                mavlinkStatus = "MISSION";
+                updateStatusText();
+                showToast("Mission waypoint: " + (seq+1) + " reached");
+            }
+        }
     }
 
     @Override
@@ -294,10 +310,10 @@ public class MainActivity extends AppCompatActivity implements
             try {
                 getMavlinkMaster().getMissionService().pauseMission()
                         .thenAccept(res -> {
-                            Toast.makeText(MainActivity.this.getApplicationContext(), "Mission paused successful", Toast.LENGTH_LONG);
+                            showToast( "Mission paused successful");
                         })
                         .exceptionally(throwable -> {
-                            Toast.makeText(MainActivity.this.getApplicationContext(), "Mission paused failed", Toast.LENGTH_LONG);
+                            showToast( "Mission paused failed");
                             return null;
                         });
             } catch (IOException e) {
@@ -321,6 +337,12 @@ public class MainActivity extends AppCompatActivity implements
                     FabAnimation.showOut(fabPause);
                 }
             }
+        });
+    }
+
+    private void showToast(String text) {
+        handler.post(()-> {
+            Toast.makeText(this, text, Toast.LENGTH_LONG).show();
         });
     }
 
@@ -377,11 +399,5 @@ public class MainActivity extends AppCompatActivity implements
                     .rotation(rotate ? 135f : 0f);
             return rotate;
         }
-    }
-
-    private void showToast(String text) {
-        handler.post(()-> {
-            Toast.makeText(this, text, Toast.LENGTH_LONG);
-        });
     }
 }

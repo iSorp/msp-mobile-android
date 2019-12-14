@@ -31,7 +31,7 @@ public class MspApplication extends Application {
         super.attachBaseContext(paramContext);
         instance = this;
         Helper.install(MspApplication.this);
-       if (djiApplication == null) {
+        if (djiApplication == null) {
             djiApplication = new DJIApplication();
             djiApplication.setContext(this);
         }

@@ -1,56 +1,77 @@
 package ch.bfh.ti.these.msp;
 
-import android.Manifest;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
-import android.widget.Toast;
-import androidx.core.content.ContextCompat;
+
+import ch.bfh.ti.these.msp.dji.DjiMessageListener;
+import dji.common.battery.BatteryState;
 import dji.common.error.DJIError;
 import dji.common.error.DJISDKError;
+import dji.common.flightcontroller.FlightControllerState;
 import dji.sdk.base.BaseComponent;
 import dji.sdk.base.BaseProduct;
+import dji.sdk.battery.Inspire2Battery;
+import dji.sdk.flightcontroller.FlightController;
+import dji.sdk.flightcontroller.FlightControllerBase;
 import dji.sdk.products.Aircraft;
 import dji.sdk.sdkmanager.DJISDKInitEvent;
 import dji.sdk.sdkmanager.DJISDKManager;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class DJIApplication extends Application {
 
-    private static final String TAG = DJIApplication.class.getName();
     public static final String FLAG_CONNECTION_CHANGE = "dji_sdk_connection_change";
     public static final String FLAG_REGISTER_CHANGE = "dji_sdk_register_change";
     public static final String FLAG_DB_DOWNLOAD_CHANGE = "dji_sdk_db_download_change";
 
-    private AtomicBoolean isRegistrationInProgress = new AtomicBoolean(false);
+
+    private static final String TAG = DJIApplication.class.getName();
+    private static DJIApplication instance;
     private static BaseProduct mProduct;
+
+    private AtomicBoolean isRegistrationInProgress = new AtomicBoolean(false);
+
     private Handler handler;
-    private DJISDKManager.SDKManagerCallback mDJISDKManagerCallback;
     private int lastProcess = -1;
-    private Application instance;
+    private Application context;
+    private ArrayList<DjiMessageListener.DjiFlightStateListener> flightStateMessageListeners = new ArrayList<>();
+    private ArrayList<DjiMessageListener.DjiBatteryStateListener> batteryStateMessageListeners = new ArrayList<>();
 
 
-    public void setContext(Application application) {
-        instance = application;
+    public DJIApplication() {
+        instance = this;
     }
 
     @Override
     public Context getApplicationContext() {
-        return instance;
+        return context;
+    }
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+
+        handler = new Handler(Looper.getMainLooper());
+        startSDKRegistration();
+    }
+
+    @Override
+    public void onTerminate() {
+        super.onTerminate();
     }
 
 
-    public DJIApplication() {
-
+    public void setContext(Application application) {
+        context = application;
     }
+
 
     /**
      * Gets instance of the specific product connected after the
@@ -64,24 +85,32 @@ public class DJIApplication extends Application {
         return mProduct;
     }
 
-    public static boolean isAircraftConnected() {
-        return getProductInstance() != null && getProductInstance() instanceof Aircraft;
-    }
-
     public static synchronized Aircraft getAircraftInstance() {
         if (!isAircraftConnected()) return null;
         return (Aircraft) getProductInstance();
     }
 
-    @Override
-    public void onCreate() {
-        super.onCreate();
-
-        handler = new Handler(Looper.getMainLooper());
-        startSDKRegistration();
+    public static boolean isAircraftConnected() {
+        return getProductInstance() != null && getProductInstance() instanceof Aircraft;
     }
 
+    public static void addMessageListener(DjiMessageListener listener) {
 
+        if (listener instanceof DjiMessageListener.DjiFlightStateListener)
+            instance.flightStateMessageListeners.add((DjiMessageListener.DjiFlightStateListener)listener);
+
+        if (listener instanceof DjiMessageListener.DjiBatteryStateListener)
+            instance.batteryStateMessageListeners.add((DjiMessageListener.DjiBatteryStateListener)listener);
+    }
+
+    public static void removeMessageListener(DjiMessageListener listener) {
+
+        if (listener instanceof DjiMessageListener.DjiFlightStateListener)
+            instance.flightStateMessageListeners.remove((DjiMessageListener.DjiFlightStateListener)listener);
+
+        if (listener instanceof DjiMessageListener.DjiBatteryStateListener)
+            instance.batteryStateMessageListeners.remove((DjiMessageListener.DjiBatteryStateListener)listener);
+    }
 
     private void startSDKRegistration() {
 
@@ -116,21 +145,25 @@ public class DJIApplication extends Application {
                                                       BaseComponent newComponent) {
 
                             if (newComponent != null) {
-                                newComponent.setComponentListener(new BaseComponent.ComponentListener() {
-
-                                    @Override
-                                    public void onConnectivityChange(boolean isConnected) {
-                                        Log.d(TAG, "onComponentConnectivityChanged: " + isConnected);
-                                        notifyStatusChange(FLAG_CONNECTION_CHANGE);
-                                    }
+                                newComponent.setComponentListener((isConnected)-> {
+                                    Log.d(TAG, "onComponentConnectivityChanged: " + isConnected);
+                                    notifyStatusChange(FLAG_CONNECTION_CHANGE);
                                 });
+
+                                switch (componentKey) {
+                                    case FLIGHT_CONTROLLER:
+                                        registerFlightControllerCallback((FlightControllerBase)newComponent);
+                                        break;
+                                    case BATTERY:
+                                        registerBatteryCallback((Inspire2Battery)newComponent);
+                                        break;
+                                }
                             }
                             Log.d(TAG,
                                     String.format("onComponentChange key:%s, oldComponent:%s, newComponent:%s",
                                             componentKey,
                                             oldComponent,
                                             newComponent));
-
                         }
 
                         @Override
@@ -174,4 +207,33 @@ public class DJIApplication extends Application {
         handler.removeCallbacks(updateRunnable);
         handler.postDelayed(updateRunnable, 500);
     }
+
+    private void registerBatteryCallback(Inspire2Battery inspire2Battery) {
+
+        inspire2Battery.setStateCallback((BatteryState state) -> {
+            try {
+                for (DjiMessageListener.DjiBatteryStateListener listener : batteryStateMessageListeners) {
+                    listener.batteryStateChanged(state);
+                }
+            }
+            catch (Exception exception) {
+                exception.printStackTrace();
+            }
+        });
+    }
+
+    private void registerFlightControllerCallback(FlightControllerBase flightControllerBase) {
+        flightControllerBase.setStateCallback((FlightControllerState state)-> {
+            try {
+
+                for (DjiMessageListener.DjiFlightStateListener listener : flightStateMessageListeners) {
+                    listener.flightStateChanged(state);
+                }
+            }
+            catch (Exception exception) {
+                exception.printStackTrace();
+            }
+        });
+    }
+
 }

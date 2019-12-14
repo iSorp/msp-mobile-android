@@ -90,7 +90,7 @@ public class MissionDetailFragment extends Fragment {
 
     private void showToast(String text) {
         handler.post(()-> {
-            Toast.makeText(MissionDetailFragment.this.getActivity(), text, Toast.LENGTH_LONG);
+            Toast.makeText(this.getActivity(), text, Toast.LENGTH_LONG).show();
         });
     }
 }

@@ -1,5 +1,9 @@
 package ch.bfh.ti.these.msp.ui;
 
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.location.Location;
 import android.os.Bundle;
 import android.os.Handler;
@@ -7,21 +11,33 @@ import android.os.Looper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import androidx.annotation.ColorInt;
+import androidx.annotation.DrawableRes;
+import androidx.core.content.res.ResourcesCompat;
+import androidx.core.graphics.drawable.DrawableCompat;
 import androidx.fragment.app.Fragment;
 import ch.bfh.ti.these.msp.DJIApplication;
 import ch.bfh.ti.these.msp.R;
+import ch.bfh.ti.these.msp.dji.DjiMessageListener;
+import ch.bfh.ti.these.msp.mavlink.MavlinkConnectionInfo;
+import ch.bfh.ti.these.msp.mavlink.MavlinkMessageListener;
 import com.google.android.gms.location.*;
 import com.google.android.gms.maps.*;
-import com.google.android.gms.maps.model.BitmapDescriptorFactory;
-import com.google.android.gms.maps.model.LatLng;
-import com.google.android.gms.maps.model.Marker;
-import com.google.android.gms.maps.model.MarkerOptions;
-import com.google.android.gms.tasks.OnSuccessListener;
-import dji.common.flightcontroller.FlightControllerState;
+import com.google.android.gms.maps.model.*;
 
-public class MapFragment extends Fragment implements OnMapReadyCallback {
+import dji.common.flightcontroller.FlightControllerState;
+import io.dronefleet.mavlink.MavlinkMessage;
+import io.dronefleet.mavlink.common.MissionItemReached;
+
+import java.io.IOException;
+
+import static ch.bfh.ti.these.msp.MspApplication.getMavlinkMaster;
+
+public class MapFragment extends Fragment implements OnMapReadyCallback, DjiMessageListener.DjiFlightStateListener, MavlinkMessageListener {
 
     int ZOOM_LEVEL=15;
+
+    private volatile boolean flightStatusUpdated = true;
 
     private Handler handler;
     private  MapView mapView;
@@ -64,6 +80,13 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     }
 
     @Override
+    public void onPause() {
+        super.onPause();
+        mapView.onPause();
+    }
+
+
+    @Override
     public void onStart() {
         super.onStart();
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(getActivity());
@@ -75,19 +98,23 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         mapView.getMapAsync(this);
         mapView.onStart();
 
+        DJIApplication.addMessageListener(this);
+        getMavlinkMaster().addMessageListener(this);
 
-        if (DJIApplication.isAircraftConnected()) {
-            DJIApplication.getAircraftInstance().getFlightController().setStateCallback((FlightControllerState state)-> {
-                try {
-                    //if (state == null) return;
-
-                    vLatitude = state.getAircraftLocation().getLatitude();
-                    vLongitude = state.getAircraftLocation().getLongitude();
-                    updateDroneLocation();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            });
+        try {
+            getMavlinkMaster().getMissionService().getCurrent()
+                    .thenAccept((result)-> {
+                        handler.post(() -> {
+                            short seq = result;
+                            if (googleMap != null && seq < 0)
+                                googleMap.clear();
+                        });
+                    }).exceptionally(throwable -> {
+                        return null;
+                    });
+        }
+        catch (IOException exception) {
+            exception.printStackTrace();
         }
     }
 
@@ -95,16 +122,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
     public void onStop() {
         super.onStop();
         mapView.onStop();
-        fusedLocationClient.removeLocationUpdates(locationCallback);
-            if (DJIApplication.isAircraftConnected()) {
-            DJIApplication.getAircraftInstance().getFlightController().setStateCallback(null);
-        }
-    }
-
-    @Override
-    public void onPause() {
-        super.onPause();
-        mapView.onPause();
     }
 
     @Override
@@ -113,9 +130,8 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         mapView.onDestroy();
 
         fusedLocationClient.removeLocationUpdates(locationCallback);
-        if (DJIApplication.isAircraftConnected()) {
-            //DJIApplication.getAircraftInstance().getFlightController().setStateCallback(null);
-        }
+        DJIApplication.removeMessageListener(this);
+        getMavlinkMaster().removeMessageListener(this);
     }
 
     @Override
@@ -145,21 +161,6 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
         }
     }
 
-    private void updateDroneLocation() {
-        LatLng pos = new LatLng(vLatitude, vLongitude);
-        // Create MarkerOptions object
-        final MarkerOptions markerOptions = new MarkerOptions();
-        markerOptions.title("Matrice 210");
-        markerOptions.position(pos);
-
-        getActivity().runOnUiThread(() ->{
-
-            if (vehicleMarker != null) {
-                vehicleMarker.remove();
-            }
-            vehicleMarker = googleMap.addMarker(markerOptions);
-        });
-    }
 
     LocationCallback locationCallback = new LocationCallback() {
         @Override
@@ -167,4 +168,73 @@ public class MapFragment extends Fragment implements OnMapReadyCallback {
             updateLocation(locationResult.getLastLocation());
         }
     };
+
+    @Override
+    public void flightStateChanged(FlightControllerState state) {
+        try {
+            vLatitude = state.getAircraftLocation().getLatitude();
+            vLongitude = state.getAircraftLocation().getLongitude();
+
+            if (flightStatusUpdated) {
+                flightStatusUpdated = false;
+
+                handler.post(()->{
+                    flightStatusUpdated = true;
+
+                    LatLng pos = new LatLng(vLatitude, vLongitude);
+
+                    // Create MarkerOptions object
+                    final MarkerOptions markerOptions = new MarkerOptions();
+                    markerOptions.title("Matrice 210");
+                    markerOptions.icon(vectorToBitmap(R.drawable.ic_drone, Color.RED));
+                    markerOptions.position(pos);
+
+                    if (vehicleMarker != null) {
+                        vehicleMarker.remove();
+                    }
+                    vehicleMarker = googleMap.addMarker(markerOptions);
+                });
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void messageReceived(MavlinkMessage message) {
+        if (message.getPayload() instanceof MissionItemReached) {
+            MavlinkMessage<MissionItemReached> msg = (MavlinkMessage<MissionItemReached>)message;
+            short seq =  (short)msg.getPayload().seq();
+
+            handler.post(()->{
+                if (seq == 0) {
+                    googleMap.clear();
+                }
+
+                if (seq >= 0) {
+                    LatLng pos = new LatLng(vLatitude, vLongitude);
+                    MarkerOptions markerOptions = new MarkerOptions();
+                    markerOptions.title("wp " + (seq+1));
+                    markerOptions.position(pos);
+                    googleMap.addMarker(markerOptions);
+                }
+            });
+        }
+    }
+
+    @Override
+    public void connectionStatusChanged(MavlinkConnectionInfo info) {
+    }
+
+
+    private BitmapDescriptor vectorToBitmap(@DrawableRes int id, @ColorInt int color) {
+        Drawable vectorDrawable = ResourcesCompat.getDrawable(getResources(), id, null);
+        Bitmap bitmap = Bitmap.createBitmap(vectorDrawable.getIntrinsicWidth(),
+                vectorDrawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+        Canvas canvas = new Canvas(bitmap);
+        vectorDrawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+        DrawableCompat.setTint(vectorDrawable, color);
+        vectorDrawable.draw(canvas);
+        return BitmapDescriptorFactory.fromBitmap(bitmap);
+    }
 }
