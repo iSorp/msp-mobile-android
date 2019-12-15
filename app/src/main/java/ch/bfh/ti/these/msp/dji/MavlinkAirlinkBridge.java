@@ -20,19 +20,21 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static ch.bfh.ti.these.msp.util.Definitions.OSDK_DATA_MAX_SIZE;
 
 
 public class MavlinkAirlinkBridge implements MavlinkBridge {
 
-    private Aircraft aircraft;
+    private volatile Aircraft aircraft;
 
-    Semaphore readBuffer = new Semaphore(0);
-    Semaphore writeBuffer = new Semaphore(1);
-    Semaphore transfereBuffer = new Semaphore(1);
+    private final Semaphore readBuffer = new Semaphore(0);        // read buffer from mvalink (read input stream)
+    private final Semaphore writeBuffer = new Semaphore(1);       // fill buffer from OSDK (provide data for input stream)
+    private final Semaphore transfereBuffer = new Semaphore(1);   // send data to OSDK and wait (transfereBuffer) for response
+    private final Object aircraftLock = new Object();
 
-    private byte[] buffer = new byte[2048];
+    private byte[] buffer = new byte[0];
     private boolean empty = true;
     private int readPos = -1;
 
@@ -40,21 +42,24 @@ public class MavlinkAirlinkBridge implements MavlinkBridge {
 
         // Register the broadcast receiver for receiving the device connection's changes.
         IntentFilter filter = new IntentFilter();
-        filter.addAction(DJIApplication.FLAG_CONNECTION_CHANGE);
+        filter.addAction(DJIApplication.FLAG_COMPONENT_CHANGE);
         MspApplication.getInstance().registerReceiver(djiReceiver, filter);
-
-        aircraft = DJIApplication.getAircraftInstance();
     }
 
     public void connect() {
         if (DJIApplication.isAircraftConnected()) {
-            aircraft.getFlightController().setOnboardSDKDeviceDataCallback(sdkDeviceDataCallback);
+            synchronized (aircraftLock) {
+                aircraft = DJIApplication.getAircraftInstance();
+                aircraft.getFlightController().setOnboardSDKDeviceDataCallback(sdkDeviceDataCallback);
+            }
         }
     }
 
     public void disconnect() {
-        if (DJIApplication.isAircraftConnected()) {
-            aircraft.getFlightController().setOnboardSDKDeviceDataCallback(null);
+        synchronized (aircraftLock) {
+            if (aircraft != null && DJIApplication.isAircraftConnected()) {
+                aircraft.getFlightController().setOnboardSDKDeviceDataCallback(null);
+            }
         }
     }
 
@@ -62,14 +67,19 @@ public class MavlinkAirlinkBridge implements MavlinkBridge {
 
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(DJIApplication.FLAG_CONNECTION_CHANGE)) {
-                Aircraft aircraft = DJIApplication.getAircraftInstance();
-                if (aircraft != null) {
-                    if(aircraft.isConnected()) {
-                        aircraft.getFlightController().setOnboardSDKDeviceDataCallback(sdkDeviceDataCallback);
-                    }
-                    else {
-                        aircraft.getFlightController().setOnboardSDKDeviceDataCallback(null);
+            if (intent.getAction().equals(DJIApplication.FLAG_COMPONENT_CHANGE)) {
+                BaseProduct.ComponentKey componentKey = (BaseProduct.ComponentKey)intent.getSerializableExtra("component");
+                boolean isConnected = intent.getBooleanExtra("isConnected", false);
+                if (componentKey == BaseProduct.ComponentKey.FLIGHT_CONTROLLER) {
+                    synchronized (aircraftLock) {
+                        aircraft = DJIApplication.getAircraftInstance();
+                        if (aircraft != null) {
+                            if (isConnected) {
+                                aircraft.getFlightController().setOnboardSDKDeviceDataCallback(sdkDeviceDataCallback);
+                            } else {
+                                aircraft.getFlightController().setOnboardSDKDeviceDataCallback(null);
+                            }
+                        }
                     }
                 }
             }
@@ -145,28 +155,30 @@ public class MavlinkAirlinkBridge implements MavlinkBridge {
     };
 
     private void send(byte[] data) {
-        if (aircraft == null) return;
+        synchronized (aircraftLock) {
+            if (aircraft == null) return;
 
-        int writePos = 0;
+            int writePos = 0;
 
-        if (data.length > OSDK_DATA_MAX_SIZE) {
-            try {
-                while (writePos < data.length) {
+            if (data.length > OSDK_DATA_MAX_SIZE) {
+                try {
+                    while (writePos < data.length) {
 
-                    // wait for callback response (if waiting for response is not necessary the sync can be removed)
-                    transfereBuffer.acquire();
+                        // wait for callback response (if waiting for response is not necessary the sync can be removed)
+                        transfereBuffer.acquire();
 
-                    int length = Math.min(data.length - writePos, OSDK_DATA_MAX_SIZE);
-                    byte[] buf = new byte[length];
-                    System.arraycopy(data, writePos, buf, 0, length);
-                    writePos += length;
-                    aircraft.getFlightController().sendDataToOnboardSDKDevice(buf, completionCallback);
+                        int length = Math.min(data.length - writePos, OSDK_DATA_MAX_SIZE);
+                        byte[] buf = new byte[length];
+                        System.arraycopy(data, writePos, buf, 0, length);
+                        writePos += length;
+                        aircraft.getFlightController().sendDataToOnboardSDKDevice(buf, completionCallback);
+                    }
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            } else {
+                aircraft.getFlightController().sendDataToOnboardSDKDevice(data, completionCallback);
             }
-        } else {
-            aircraft.getFlightController().sendDataToOnboardSDKDevice(data, completionCallback);
         }
     }
 

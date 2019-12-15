@@ -71,9 +71,9 @@ public class RegisterFragment extends Fragment {
 
         handler = new Handler(Looper.getMainLooper());
         // When the compile and target version is higher than 22, please request the following permission at runtime to ensure the SDK works well.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        //if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             checkAndRequestPermissions();
-        }
+       // }
     }
 
     @Override
@@ -161,6 +161,7 @@ public class RegisterFragment extends Fragment {
             if (intent.getAction().equals(DJIApplication.FLAG_REGISTER_CHANGE)) {
                 if (DJISDKManager.getInstance().hasSDKRegistered()) {
                     setStatusTextAsync("Register Success");
+                    getListener().onRegisterComplete();
                 }
                 else {
                     setStatusTextAsync("Register sdk fails, check network is available");
@@ -180,7 +181,6 @@ public class RegisterFragment extends Fragment {
                         progressBar.setProgress(0);
 
                     }, 1000);
-                    getListener().onRegisterComplete();
                 }
             }
         }

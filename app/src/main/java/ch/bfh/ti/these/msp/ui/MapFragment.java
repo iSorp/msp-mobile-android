@@ -186,7 +186,9 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, DjiMess
                     // Create MarkerOptions object
                     final MarkerOptions markerOptions = new MarkerOptions();
                     markerOptions.title("Matrice 210");
-                    markerOptions.icon(vectorToBitmap(R.drawable.ic_drone, Color.RED));
+                    BitmapDescriptor bitmapDescriptor = vectorToBitmap(R.drawable.ic_drone, Color.RED);
+                    if (bitmapDescriptor != null)
+                        markerOptions.icon(bitmapDescriptor);
                     markerOptions.position(pos);
 
                     if (vehicleMarker != null) {
@@ -228,13 +230,21 @@ public class MapFragment extends Fragment implements OnMapReadyCallback, DjiMess
 
 
     private BitmapDescriptor vectorToBitmap(@DrawableRes int id, @ColorInt int color) {
-        Drawable vectorDrawable = ResourcesCompat.getDrawable(getResources(), id, null);
-        Bitmap bitmap = Bitmap.createBitmap(vectorDrawable.getIntrinsicWidth(),
-                vectorDrawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
-        Canvas canvas = new Canvas(bitmap);
-        vectorDrawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
-        DrawableCompat.setTint(vectorDrawable, color);
-        vectorDrawable.draw(canvas);
-        return BitmapDescriptorFactory.fromBitmap(bitmap);
+        BitmapDescriptor bitmapDescriptor = null;
+        try {
+            Drawable vectorDrawable = ResourcesCompat.getDrawable(getResources(), id, null);
+            Bitmap bitmap = Bitmap.createBitmap(vectorDrawable.getIntrinsicWidth(),
+                    vectorDrawable.getIntrinsicHeight(), Bitmap.Config.ARGB_8888);
+            Canvas canvas = new Canvas(bitmap);
+            vectorDrawable.setBounds(0, 0, canvas.getWidth(), canvas.getHeight());
+            DrawableCompat.setTint(vectorDrawable, color);
+            vectorDrawable.draw(canvas);
+            bitmapDescriptor = BitmapDescriptorFactory.fromBitmap(bitmap);
+        }
+        catch (Exception exception) {
+            exception.printStackTrace();
+        }
+
+        return bitmapDescriptor;
     }
 }

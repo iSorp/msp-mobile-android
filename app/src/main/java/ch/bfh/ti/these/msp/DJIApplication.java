@@ -3,11 +3,13 @@ package ch.bfh.ti.these.msp;
 import android.app.Application;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.Log;
 
+import androidx.preference.PreferenceManager;
 import ch.bfh.ti.these.msp.dji.DjiMessageListener;
 import dji.common.battery.BatteryState;
 import dji.common.error.DJIError;
@@ -25,9 +27,13 @@ import dji.sdk.sdkmanager.DJISDKManager;
 import java.util.ArrayList;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import static ch.bfh.ti.these.msp.MspApplication.connectAsyncMavlinkMaster;
+import static ch.bfh.ti.these.msp.MspApplication.createMavlinkMasterConfig;
+
 public class DJIApplication extends Application {
 
     public static final String FLAG_CONNECTION_CHANGE = "dji_sdk_connection_change";
+    public static final String FLAG_COMPONENT_CHANGE = "dji_sdk_component_change";
     public static final String FLAG_REGISTER_CHANGE = "dji_sdk_register_change";
     public static final String FLAG_DB_DOWNLOAD_CHANGE = "dji_sdk_db_download_change";
 
@@ -147,23 +153,17 @@ public class DJIApplication extends Application {
                             if (newComponent != null) {
                                 newComponent.setComponentListener((isConnected)-> {
                                     Log.d(TAG, "onComponentConnectivityChanged: " + isConnected);
-                                    notifyStatusChange(FLAG_CONNECTION_CHANGE);
+                                    registerCallbacks(componentKey, oldComponent, newComponent, isConnected);
+                                    notifyStatusChange(FLAG_COMPONENT_CHANGE, componentKey, isConnected);
                                 });
-
-                                switch (componentKey) {
-                                    case FLIGHT_CONTROLLER:
-                                        registerFlightControllerCallback((FlightControllerBase)newComponent);
-                                        break;
-                                    case BATTERY:
-                                        registerBatteryCallback((Inspire2Battery)newComponent);
-                                        break;
-                                }
                             }
-                            Log.d(TAG,
-                                    String.format("onComponentChange key:%s, oldComponent:%s, newComponent:%s",
+
+                            Log.d(TAG, String.format("onComponentChange key:%s, oldComponent:%s, newComponent:%s",
                                             componentKey,
                                             oldComponent,
                                             newComponent));
+                            registerCallbacks(componentKey, oldComponent, newComponent, true);
+                            notifyStatusChange(FLAG_COMPONENT_CHANGE, componentKey, true);
                         }
 
                         @Override
@@ -192,48 +192,84 @@ public class DJIApplication extends Application {
         }
     }
 
-    private void notifyStatusChange(String flag) {
-        notifyStatusChange(flag, 0);
-    }
-
-    private void notifyStatusChange(String flag, int value) {
+    private void notifyStatusChange(Intent intent) {
 
         Runnable updateRunnable = () -> {
-            Intent intent = new Intent(flag);
-            intent.putExtra("value", value);
             getApplicationContext().sendBroadcast(intent);
         };
 
         handler.removeCallbacks(updateRunnable);
-        handler.postDelayed(updateRunnable, 500);
+        handler.postDelayed(updateRunnable, 100);
     }
 
-    private void registerBatteryCallback(Inspire2Battery inspire2Battery) {
-
-        inspire2Battery.setStateCallback((BatteryState state) -> {
-            try {
-                for (DjiMessageListener.DjiBatteryStateListener listener : batteryStateMessageListeners) {
-                    listener.batteryStateChanged(state);
-                }
-            }
-            catch (Exception exception) {
-                exception.printStackTrace();
-            }
-        });
+    private void notifyStatusChange(String flag) {
+        notifyStatusChange(new Intent(flag));
     }
 
-    private void registerFlightControllerCallback(FlightControllerBase flightControllerBase) {
-        flightControllerBase.setStateCallback((FlightControllerState state)-> {
-            try {
+    private void notifyStatusChange(String flag, int value) {
+        Intent intent = new Intent(flag);
+        intent.putExtra("value", value);
+        notifyStatusChange(intent);
+    }
 
-                for (DjiMessageListener.DjiFlightStateListener listener : flightStateMessageListeners) {
-                    listener.flightStateChanged(state);
+    private void notifyStatusChange(String flag, BaseProduct.ComponentKey component, boolean isConnected) {
+        Intent intent = new Intent(flag);
+        intent.putExtra("component", component);
+        intent.putExtra("isConnected", isConnected);
+        notifyStatusChange(intent);
+    }
+
+
+    private void registerCallbacks(BaseProduct.ComponentKey componentKey, BaseComponent oldComponent, BaseComponent newComponent, boolean isConnected) {
+        switch (componentKey) {
+            case FLIGHT_CONTROLLER:
+                registerFlightControllerCallback((FlightControllerBase)oldComponent, false);
+                registerFlightControllerCallback((FlightControllerBase)newComponent, isConnected);
+                break;
+            case BATTERY:
+                registerBatteryCallback((Inspire2Battery)oldComponent, false);
+                registerBatteryCallback((Inspire2Battery)newComponent, isConnected);
+                break;
+        }
+    }
+
+    private void registerBatteryCallback(Inspire2Battery inspire2Battery, boolean isConnected) {
+        if (inspire2Battery == null) return;
+
+        if (isConnected) {
+            inspire2Battery.setStateCallback((BatteryState state) -> {
+                try {
+                    for (DjiMessageListener.DjiBatteryStateListener listener : batteryStateMessageListeners) {
+                        listener.batteryStateChanged(state);
+                    }
                 }
-            }
-            catch (Exception exception) {
-                exception.printStackTrace();
-            }
-        });
+                catch (Exception exception) {
+                    exception.printStackTrace();
+                }
+            });
+        }else {
+            inspire2Battery.setStateCallback(null);
+        }
+    }
+
+    private void registerFlightControllerCallback(FlightControllerBase flightControllerBase, boolean isConnected) {
+        if (flightControllerBase == null) return;
+
+        if (isConnected) {
+            flightControllerBase.setStateCallback((FlightControllerState state)-> {
+                try {
+
+                    for (DjiMessageListener.DjiFlightStateListener listener : flightStateMessageListeners) {
+                        listener.flightStateChanged(state);
+                    }
+                }
+                catch (Exception exception) {
+                    exception.printStackTrace();
+                }
+            });
+        }else {
+            flightControllerBase.setStateCallback(null);
+        }
     }
 
 }

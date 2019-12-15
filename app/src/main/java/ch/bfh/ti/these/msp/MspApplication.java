@@ -74,12 +74,6 @@ public class MspApplication extends Application {
             e.printStackTrace();
         }
 
-        // Airlink oder udp connection
-        int type = 0;
-        if (!udp && DJIApplication.getAircraftInstance() != null) {
-            type = 1;
-        }
-
         if (mavlinkMaster != null) {
             try {
                 mavlinkMaster.dispose();
@@ -88,9 +82,8 @@ public class MspApplication extends Application {
             }
         }
 
-        if (type == 0) {
+        if (udp) {
             mavlinkBridge = new MavlinkUdpBridge(sport, ip, tport);
-
         }
         else {
             mavlinkBridge = new MavlinkAirlinkBridge();
