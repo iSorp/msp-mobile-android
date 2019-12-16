@@ -4,7 +4,6 @@ import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
 import ch.bfh.ti.these.msp.mavlink.model.MavlinkMission;
 import ch.bfh.ti.these.msp.mavlink.model.MavlinkMissionUploadItem;
 import ch.bfh.ti.these.msp.models.Mission;
-import ch.bfh.ti.these.msp.models.WayPoint;
 import io.dronefleet.mavlink.MavlinkConnection;
 import io.dronefleet.mavlink.MavlinkMessage;
 import io.dronefleet.mavlink.common.*;

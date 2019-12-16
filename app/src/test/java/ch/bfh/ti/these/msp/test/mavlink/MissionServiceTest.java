@@ -5,8 +5,6 @@ import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
 import ch.bfh.ti.these.msp.mavlink.MavlinkUdpBridge;
 import ch.bfh.ti.these.msp.mavlink.model.MavlinkMission;
 import ch.bfh.ti.these.msp.mavlink.model.MavlinkMissionUploadItem;
-import ch.bfh.ti.these.msp.models.Mission;
-import ch.bfh.ti.these.msp.models.WayPoint;
 
 import ch.bfh.ti.these.msp.util.Definitions;
 import org.junit.After;
@@ -14,7 +12,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.net.*;
 import java.util.concurrent.CompletableFuture;
 
 

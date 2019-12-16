@@ -4,14 +4,9 @@ import android.app.Application;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import ch.bfh.ti.these.msp.db.ActionDao;
-import ch.bfh.ti.these.msp.db.MissionDao;
-import ch.bfh.ti.these.msp.db.MissionDatabase;
-import ch.bfh.ti.these.msp.db.WayPointDao;
+import ch.bfh.ti.these.msp.db.*;
 import ch.bfh.ti.these.msp.http.MissionClient;
-import ch.bfh.ti.these.msp.models.Action;
-import ch.bfh.ti.these.msp.models.Mission;
-import ch.bfh.ti.these.msp.models.WayPoint;
+import ch.bfh.ti.these.msp.models.*;
 
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -55,14 +50,14 @@ public class MissionRepository {
             Mission m = missionDao.findOneById(missionId);
             if (m != null) {
                 Mission backendMission = MissionClient.getInstance(BACKEND_HOST, BACKEND_PORT).getMission(missionId);
-                for (WayPoint wp: backendMission.getWayPoints()) {
+                for (Waypoint wp: backendMission.getWaypoints()) {
                     wayPointDao.insert(wp);
                     for (Action a: wp.getActions()) {
                         actionDao.insert(a);
                     }
                 }
                 Result<Mission> result = new Result<>();
-                if (backendMission.getWayPoints().size() > 0) {
+                if (backendMission.getWaypoints().size() > 0) {
                     result.status = true;
                     result.payload = backendMission;
                     liveData.postValue(result);
@@ -75,6 +70,10 @@ public class MissionRepository {
         return liveData;
     }
 
+
+    void uploadSensorData(MavlinkData data) {
+
+    }
 
     public class Result<T> {
         private boolean status;

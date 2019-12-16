@@ -12,19 +12,22 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity(tableName = "actions",foreignKeys =
-@ForeignKey(entity=WayPoint.class,parentColumns = "id",childColumns = "way_point_id"))
+@Entity(tableName = "actions",foreignKeys = {
+        @ForeignKey(entity= Waypoint.class,parentColumns = "id",childColumns = "waypoint_id")
+})
 public class Action {
 
     @NonNull
     @PrimaryKey
     private String id;
 
-    @ColumnInfo(name = "way_point_id")
-    private String wayPointId;
+    @ColumnInfo(name = "waypoint_id")
+    private String waypointId;
+    @ColumnInfo(name = "mavlink_sensor")
+    private int mavlinkSensor;
+    @ColumnInfo(name = "mavlink_command")
+    private int mavlinkCommand;
 
-    private int command;
-    private int sensor;
     private float param1;
     private float param2;
     private float param3;
@@ -40,28 +43,28 @@ public class Action {
         this.id = id;
     }
 
-    public String getWayPointId() {
-        return wayPointId;
+    public String getWaypointId() {
+        return waypointId;
     }
 
-    public void setWayPointId(String wayPointId) {
-        this.wayPointId = wayPointId;
+    public void setWaypointId(String waypointId) {
+        this.waypointId = waypointId;
     }
 
-    public int getCommand() {
-        return command;
+    public int getMavlinkSensor() {
+        return mavlinkSensor;
     }
 
-    public void setCommand(int command) {
-        this.command = command;
+    public void setMavlinkSensor(int mavlinkSensor) {
+        this.mavlinkSensor = mavlinkSensor;
     }
 
-    public int getSensor() {
-        return sensor;
+    public int getMavlinkCommand() {
+        return mavlinkCommand;
     }
 
-    public void setSensor(int sensor) {
-        this.sensor = sensor;
+    public void setMavlinkCommand(int mavlinkCommand) {
+        this.mavlinkCommand = mavlinkCommand;
     }
 
     public float getParam1() {
@@ -122,9 +125,9 @@ public class Action {
         // Deserialize json into object fields
         try {
             a.id = jsonObject.getString("id");
-            a.wayPointId = jsonObject.getString("waypoint_id");
-            a.sensor = jsonObject.getInt("sensor_id");
-            a.command = jsonObject.getInt("command_id");
+            a.waypointId = jsonObject.getString("waypoint_id");
+            a.mavlinkSensor = jsonObject.getInt("mavlink_sensor");
+            a.mavlinkCommand = jsonObject.getInt("mavlink_command");
             a.param1 = jsonObject.optLong("param1");
             a.param2 = jsonObject.optLong("param2");
             a.param3 = jsonObject.optLong("param3");

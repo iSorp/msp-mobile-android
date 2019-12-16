@@ -4,14 +4,14 @@ import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.OnConflictStrategy;
 import androidx.room.Query;
-import ch.bfh.ti.these.msp.models.WayPoint;
+import ch.bfh.ti.these.msp.models.Waypoint;
 
 @Dao
 public interface WayPointDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    void insert(WayPoint wayPoint);
+    void insert(Waypoint waypoint);
 
-    @Query("DELETE FROM way_points")
+    @Query("DELETE FROM waypoints")
     void deleteAll();
 }

@@ -1,18 +1,18 @@
 package ch.bfh.ti.these.msp.http;
 
 import ch.bfh.ti.these.msp.models.Mission;
-import ch.bfh.ti.these.msp.models.WayPoint;
-import dji.thirdparty.retrofit2.http.Url;
+import ch.bfh.ti.these.msp.models.SensorData;
+import ch.bfh.ti.these.msp.models.Waypoint;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.BufferedReader;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
-import java.net.Socket;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
@@ -64,9 +64,39 @@ public class MissionClient {
         JSONArray response = getRequest(url);
 
         if (response != null) {
-            mission.setWayPoints(WayPoint.fromJson(response));
+            mission.setWaypoints(Waypoint.fromJson(response));
         }
         return mission;
+    }
+
+    public void uploadSensorData(List<SensorData> sensorDataList) {
+        URL url;
+        try {
+            url = new URL("http", host, port, "save");
+        } catch (MalformedURLException e) {
+            return;
+        }
+
+        try {
+            for (SensorData sensorData : sensorDataList) {
+                HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
+                urlConnection.setRequestMethod("POST");
+                urlConnection.setRequestProperty("Content-Type", "application/json; utf-8");
+                urlConnection.setReadTimeout(10000 );
+                urlConnection.setConnectTimeout(15000);
+                urlConnection.setDoOutput(true);
+                urlConnection.connect();
+                try(DataOutputStream os = new DataOutputStream(urlConnection.getOutputStream())) {
+                    os.writeBytes(sensorData.toJson().toString());
+                    os.flush();
+                } catch (JSONException e) {
+
+                }
+                int status = urlConnection.getResponseCode();
+            }
+        } catch (IOException e) {
+
+        }
     }
 
     private JSONArray getRequest(URL url) {

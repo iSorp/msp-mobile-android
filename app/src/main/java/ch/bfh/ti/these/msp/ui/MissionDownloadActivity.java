@@ -1,16 +1,26 @@
 package ch.bfh.ti.these.msp.ui;
 
+import android.app.Application;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.widget.Button;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
-import android.os.Bundle;
 import androidx.appcompat.widget.Toolbar;
 import ch.bfh.ti.these.msp.MspApplication;
 import ch.bfh.ti.these.msp.R;
+import ch.bfh.ti.these.msp.db.ActionDao;
+import ch.bfh.ti.these.msp.db.MissionDatabase;
+import ch.bfh.ti.these.msp.http.MissionClient;
 import ch.bfh.ti.these.msp.mavlink.MavlinkDirParser;
 import ch.bfh.ti.these.msp.mavlink.MavlinkMaster;
 import ch.bfh.ti.these.msp.mavlink.microservices.FtpService;
+import ch.bfh.ti.these.msp.mavlink.model.Converter;
+import ch.bfh.ti.these.msp.models.MavlinkData;
+import ch.bfh.ti.these.msp.models.SensorData;
+import ch.bfh.ti.these.msp.util.Definitions;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -122,19 +132,25 @@ public class MissionDownloadActivity extends AppCompatActivity {
         return null;
     }
 
-    private class DownloadMissionResult extends AsyncTask<Void, Void, MavlinkFtpResult<byte[]>> {
+    private class DownloadMissionResult extends AsyncTask<Void, Void, MavlinkFtpResult<List<MavlinkData>>> {
 
         @Override
-        protected MavlinkFtpResult<byte[]> doInBackground(Void... voids) {
-                MavlinkFtpResult<byte[]> result = new MavlinkFtpResult<>();
-                for (String[] file : fileList) {
-                    CompletableFuture cf = mavlinkExecCommand(
-                            MavlinkFtpCommand.Download,
-                            MAVLINK_DATA_DIR + file[0],
-                            (byte[] response) -> {
-
-                            },
-                            false
+        protected MavlinkFtpResult<List<MavlinkData>> doInBackground(Void... voids) {
+            MavlinkFtpResult<List<MavlinkData>> result = new MavlinkFtpResult<>();
+            result.payload = new ArrayList<>();
+            for (String[] file : fileList) {
+                CompletableFuture cf = mavlinkExecCommand(
+                        MavlinkFtpCommand.Download,
+                        MAVLINK_DATA_DIR + file[0],
+                        (byte[] response) -> {
+                            try {
+                                result.payload.add(MavlinkData.fromJson(new JSONObject(new String(response))));
+                            } catch (JSONException e) {
+                                result.status = false;
+                                result.msgs.add("Can not parse JSON " + file[0]);
+                            }
+                        },
+                        false
                     );
                     try {
                         if (cf != null) {
@@ -151,10 +167,11 @@ public class MissionDownloadActivity extends AppCompatActivity {
         }
 
         @Override
-        protected void onPostExecute(MavlinkFtpResult<byte[]> result) {
+        protected void onPostExecute(MavlinkFtpResult<List<MavlinkData>> result) {
             super.onPostExecute(result);
             if (result.status) {
                 statusText.setText("All files downloaded");
+                new UploadWaypointData(MissionDownloadActivity.this.getApplication()).execute(result.payload);
             }
         }
     }
@@ -196,6 +213,28 @@ public class MissionDownloadActivity extends AppCompatActivity {
         }
     }
 
+    private static class UploadWaypointData extends AsyncTask<List<MavlinkData>, Void, Void> {
+
+        private final MissionClient client;
+        private final ActionDao actionDao;
+
+        private UploadWaypointData(Application app) {
+            client = MissionClient.getInstance(Definitions.BACKEND_HOST, Definitions.BACKEND_PORT);
+            actionDao = MissionDatabase.getInstance(app).actionDao();
+        }
+
+        @Override
+        protected Void doInBackground(List<MavlinkData>... waypointDataList) {
+            List<SensorData> allSensorData = new ArrayList<>(waypointDataList[0].size());
+            for (MavlinkData da : waypointDataList[0]) {
+                List<SensorData> sensorData = Converter.convertToSensorData(da, actionDao);
+                allSensorData.addAll(sensorData);
+            }
+            client.uploadSensorData(allSensorData);
+            return null;
+        }
+    }
+
     private class MavlinkFtpResult<T> {
         private MavlinkFtpResult() {
             status = true;
@@ -204,6 +243,8 @@ public class MissionDownloadActivity extends AppCompatActivity {
 
         boolean status;
         List<String> msgs;
+
+        T payload;
     }
 
     private enum MavlinkFtpCommand {

@@ -9,15 +9,16 @@ import org.json.JSONObject;
 import java.util.ArrayList;
 import java.util.List;
 
-@Entity(tableName = "way_points",foreignKeys =
+@Entity(tableName = "waypoints",foreignKeys =
 @ForeignKey(entity=Mission.class,parentColumns = "id",childColumns = "mission_id"))
-public class WayPoint {
+public class Waypoint {
 
     @NonNull
     @PrimaryKey
     private String id;
     @ColumnInfo(name = "mission_id")
     private String missionId;
+    private int seq;
     private float longitude;
     private float latitude;
     private float altitude;
@@ -25,7 +26,7 @@ public class WayPoint {
     @Ignore
     private List<Action> actions = new ArrayList<>();
 
-    public WayPoint() { }
+    public Waypoint() { }
 
     @NonNull
     public String getId() {
@@ -42,6 +43,14 @@ public class WayPoint {
 
     public void setMissionId(String missionId) {
         this.missionId = missionId;
+    }
+
+    public int getSeq() {
+        return seq;
+    }
+
+    public void setSeq(int seq) {
+        this.seq = seq;
     }
 
     public float getLongitude() {
@@ -76,9 +85,9 @@ public class WayPoint {
         this.actions = actions;
     }
 
-    public static List<WayPoint> fromJson(JSONArray jsonArray) {
+    public static List<Waypoint> fromJson(JSONArray jsonArray) {
         JSONObject waypointJson;
-        List<WayPoint> wayPoints = new ArrayList<>(jsonArray.length());
+        List<Waypoint> waypoints = new ArrayList<>(jsonArray.length());
 
         for (int i=0; i < jsonArray.length(); i++) {
             try {
@@ -88,21 +97,22 @@ public class WayPoint {
                 continue;
             }
 
-            WayPoint wayPoint = WayPoint.fromJson(waypointJson);
+            Waypoint wayPoint = Waypoint.fromJson(waypointJson);
             if (wayPoint != null) {
-                wayPoints.add(wayPoint);
+                waypoints.add(wayPoint);
             }
         }
 
-        return wayPoints;
+        return waypoints;
     }
 
-    private static WayPoint fromJson(JSONObject jsonObject) {
-        WayPoint m = new WayPoint();
+    private static Waypoint fromJson(JSONObject jsonObject) {
+        Waypoint m = new Waypoint();
         // Deserialize json into object fields
         try {
             m.id = jsonObject.getString("id");
             m.missionId = jsonObject.getString("mission_id");
+            m.seq = jsonObject.getInt("seq");
             m.longitude = (float) jsonObject.getDouble("long");
             m.latitude = (float) jsonObject.getDouble("lat");
             m.altitude = (float) jsonObject.getDouble("alt");

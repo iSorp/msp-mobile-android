@@ -19,7 +19,7 @@ public class Mission {
     private String id;
     private String name;
     @Ignore
-    private List<WayPoint> wayPoints = new ArrayList<>();
+    private List<Waypoint> waypoints = new ArrayList<>();
 
 
     @NonNull
@@ -39,12 +39,12 @@ public class Mission {
         this.name = name;
     }
 
-    public List<WayPoint> getWayPoints() {
-        return wayPoints;
+    public List<Waypoint> getWaypoints() {
+        return waypoints;
     }
 
-    public void setWayPoints(List<WayPoint> wayPoints) {
-        this.wayPoints = wayPoints;
+    public void setWaypoints(List<Waypoint> waypoints) {
+        this.waypoints = waypoints;
     }
 
     public static ArrayList<Mission> fromJson(JSONArray jsonArray) {

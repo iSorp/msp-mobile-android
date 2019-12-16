@@ -6,9 +6,9 @@ import androidx.room.Room;
 import androidx.room.RoomDatabase;
 import ch.bfh.ti.these.msp.models.Action;
 import ch.bfh.ti.these.msp.models.Mission;
-import ch.bfh.ti.these.msp.models.WayPoint;
+import ch.bfh.ti.these.msp.models.Waypoint;
 
-@Database(entities = {Mission.class, WayPoint.class, Action.class}, version = 1)
+@Database(entities = {Mission.class, Waypoint.class, Action.class}, version = 1)
 public abstract class MissionDatabase extends RoomDatabase {
     private static MissionDatabase INSTANCE;
 
