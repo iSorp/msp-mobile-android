@@ -1,7 +1,10 @@
 package ch.bfh.ti.these.msp.ui;
 
+import android.os.Handler;
+import android.os.Looper;
 import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.fragment.app.FragmentActivity;
 import androidx.lifecycle.ViewModelProviders;
 import android.os.Bundle;
@@ -24,6 +27,7 @@ import static ch.bfh.ti.these.msp.MspApplication.getMavlinkMaster;
 
 public class MissionDetailFragment extends Fragment {
 
+    private Handler handler;
     private MissionViewModel viewModel;
     private TextView tvName;
     private Button btnSelectMission;
@@ -37,6 +41,7 @@ public class MissionDetailFragment extends Fragment {
     @Override
     public void onActivityCreated(@Nullable Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
+        handler = new Handler(Looper.getMainLooper());
         FragmentActivity activity = getActivity();
         if (activity != null) {
             viewModel = ViewModelProviders.of(activity).get(MissionViewModel.class);
@@ -71,11 +76,21 @@ public class MissionDetailFragment extends Fragment {
             MavlinkMission mission = Converter.convertToUploadItems(result.getPayload());
             try {
                 getMavlinkMaster().getMissionService().uploadMission(mission).thenAccept((a) -> {
-
-                }).exceptionally(null);
+                    showToast("Mission upload successful");
+                }).exceptionally(throwable -> {
+                    showToast("Mission upload failed");
+                    return null;
+                });
             } catch (IOException e) {
+                e.printStackTrace();
                 // @TODO SetStatus
             }
         }
+    }
+
+    private void showToast(String text) {
+        handler.post(()-> {
+            Toast.makeText(this.getActivity(), text, Toast.LENGTH_LONG).show();
+        });
     }
 }

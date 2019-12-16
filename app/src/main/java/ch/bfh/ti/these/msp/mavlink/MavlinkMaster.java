@@ -75,8 +75,10 @@ public class MavlinkMaster {
     }
 
     public void dispose() throws Exception {
-        config.getCommWrapper().disconnect();
-        mavlinkTask.Stop();
+        if (config != null)
+            config.getCommWrapper().disconnect();
+        if (mavlinkTask != null)
+            mavlinkTask.Stop();
 
         connection = null;
         connected = false;
@@ -120,7 +122,7 @@ public class MavlinkMaster {
 
         private final static int CONNECTION_TIMEOUT = 3;
 
-        private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(2);
+        private ScheduledExecutorService scheduler;
         private BlockingQueue<BaseMicroService> serviceQueue = new LinkedBlockingDeque<>();
         private volatile MavlinkConnectionInfo info = new MavlinkConnectionInfo();
         private boolean lastConnState, connectionValid, connectionChanged;
@@ -136,13 +138,16 @@ public class MavlinkMaster {
 
 
         public void Start() {
+            exit = false;
+            scheduler = Executors.newScheduledThreadPool(2);
             scheduler.execute(messageHandler);
             scheduler.scheduleAtFixedRate(connectionHandler, 3, CONNECTION_TIMEOUT, SECONDS);
         }
 
         public void Stop() {
             exit = true;
-            scheduler.shutdown();
+            if (scheduler != null)
+                scheduler.shutdown();
         }
 
         final Runnable messageHandler = new Runnable() {

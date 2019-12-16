@@ -58,6 +58,40 @@ public class MissionService extends BaseService {
     }
 
     /**
+     * Gets the current mission item sequence number
+     * @return
+     * @throws IOException
+     */
+    public CompletableFuture<Short> getCurrent() throws IOException {
+        return runAsync(new BaseMicroService<Boolean>(this.connection, new ServiceState() {
+
+            @Override
+            public void timeout() throws IOException {
+                super.timeout();
+                this.getContext().send(MissionCurrent.builder().build());
+            }
+
+            @Override
+            public void enter() throws IOException {
+                getContext().setResult(false);
+                this.getContext().send(MissionCurrent.builder().build());
+            }
+
+            @Override
+            public boolean execute() {
+
+                if (getContext().message == null) return false;
+
+                if (getContext().message.getPayload() instanceof MissionCurrent) {
+                    MavlinkMessage<MissionCurrent> msg =  (MavlinkMessage<MissionCurrent>)getContext().message;
+                    this.getContext().exit((short)msg.getPayload().seq());
+                }
+                return true;
+            }
+        }));
+    }
+
+    /**
      * Microservice for Mission upload
      */
     private class MissionUploadService extends BaseMicroService<Boolean> {

@@ -17,7 +17,7 @@ import java.util.concurrent.CompletableFuture;
 
 public class MissionServiceTest {
 
-    private final int MISSION_COUNT = 10;
+    private final int MISSION_COUNT = 50;
     private MavlinkMission mission;
     private MavlinkUdpBridge mavlinkBridge = new MavlinkUdpBridge(Definitions.MAVLINK_TEST_SOURCE_PORT, Definitions.MAVLINK_TEST_TARGET, Definitions.MAVLINK_TEST_TARGET_PORT);
     private MavlinkMaster master;
@@ -37,10 +37,14 @@ public class MissionServiceTest {
 
         mission = new MavlinkMission();
         for (int i = 0; i < MISSION_COUNT; i++) {
-            MavlinkMissionUploadItem item = new MavlinkMissionUploadItem(12 + i, 32 + i, 3);
-            item.setBehavior(5, 1);
+            double longitude = 7.24378 + ((double)(i)/10000.0); // x
+            double latitude =  47.1427 + ((double)(i)/10000.0); // y
+            double altitude =  20;
+
+            MavlinkMissionUploadItem item = new MavlinkMissionUploadItem((float)longitude, (float)latitude, (float)altitude);
+            item.setBehavior(1, 1);
             mission.addUploadItem(item);
-            MavlinkMissionUploadItem actionItem = new MavlinkMissionUploadItem(12 + i, 32 + i, 3);
+            MavlinkMissionUploadItem actionItem = new MavlinkMissionUploadItem((float)longitude, (float)latitude, (float)altitude);
             actionItem.setSensor(1, 1, 0, 0);
             mission.addUploadItem(item);
         }

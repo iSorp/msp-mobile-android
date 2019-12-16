@@ -1,10 +1,15 @@
 package ch.bfh.ti.these.msp.viewmodel;
 
 import android.app.Application;
+import android.content.SharedPreferences;
 import androidx.annotation.NonNull;
 import androidx.lifecycle.LiveData;
 import androidx.lifecycle.MutableLiveData;
-import ch.bfh.ti.these.msp.db.*;
+import androidx.preference.PreferenceManager;
+import ch.bfh.ti.these.msp.db.ActionDao;
+import ch.bfh.ti.these.msp.db.MissionDao;
+import ch.bfh.ti.these.msp.db.MissionDatabase;
+import ch.bfh.ti.these.msp.db.WayPointDao;
 import ch.bfh.ti.these.msp.http.MissionClient;
 import ch.bfh.ti.these.msp.models.*;
 
@@ -15,6 +20,7 @@ import java.util.concurrent.Executors;
 import static ch.bfh.ti.these.msp.util.Definitions.BACKEND_HOST;
 import static ch.bfh.ti.these.msp.util.Definitions.BACKEND_PORT;
 
+
 public class MissionRepository {
 
     private final MissionDao missionDao;
@@ -22,11 +28,24 @@ public class MissionRepository {
     private final ActionDao actionDao;
     private final ExecutorService executorService;
 
+    public String host;
+    public int port;
+
     MissionRepository(@NonNull Application application) {
         missionDao = MissionDatabase.getInstance(application).missionDao();
         wayPointDao = MissionDatabase.getInstance(application).wayPointDao();
         actionDao = MissionDatabase.getInstance(application).actionDao();
         executorService = Executors.newSingleThreadExecutor();
+
+
+        try {
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(application);
+            host = prefs.getString("backendAddress", BACKEND_HOST);
+            port = Integer.parseInt(prefs.getString("backendPort", ""+BACKEND_PORT));
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+
     }
 
     LiveData<List<Mission>> loadMission() {
@@ -35,7 +54,7 @@ public class MissionRepository {
             actionDao.deleteAll();
             wayPointDao.deleteAll();
             missionDao.deleteAll();
-            List<Mission> missions =  MissionClient.getInstance(BACKEND_HOST, BACKEND_PORT).getMissionList();
+            List<Mission> missions =  MissionClient.getInstance(host, port).getMissionList();
             for (Mission m: missions) {
                 missionDao.insert(m);
             }
@@ -49,7 +68,7 @@ public class MissionRepository {
         executorService.execute(() -> {
             Mission m = missionDao.findOneById(missionId);
             if (m != null) {
-                Mission backendMission = MissionClient.getInstance(BACKEND_HOST, BACKEND_PORT).getMission(missionId);
+                Mission backendMission = MissionClient.getInstance(host, port).getMission(missionId);
                 for (Waypoint wp: backendMission.getWaypoints()) {
                     wayPointDao.insert(wp);
                     for (Action a: wp.getActions()) {
@@ -70,10 +89,6 @@ public class MissionRepository {
         return liveData;
     }
 
-
-    void uploadSensorData(MavlinkData data) {
-
-    }
 
     public class Result<T> {
         private boolean status;

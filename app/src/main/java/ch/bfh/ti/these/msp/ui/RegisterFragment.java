@@ -71,9 +71,9 @@ public class RegisterFragment extends Fragment {
 
         handler = new Handler(Looper.getMainLooper());
         // When the compile and target version is higher than 22, please request the following permission at runtime to ensure the SDK works well.
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        //if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             checkAndRequestPermissions();
-        }
+       // }
     }
 
     @Override
