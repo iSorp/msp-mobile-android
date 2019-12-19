@@ -14,10 +14,12 @@
             app:layout_constraintStart_toStartOf="parent" app:layout_constraintEnd_toEndOf="parent">
 
         <TableRow android:layout_width="match_parent" android:layout_height="match_parent">
+
             <TextView
                     android:text="Batterie Spannung"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" android:id="@+id/textViewVoltageText"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/textViewVoltageText"
                     android:textSize="24sp"/>
             <TextView
                     android:text="100"

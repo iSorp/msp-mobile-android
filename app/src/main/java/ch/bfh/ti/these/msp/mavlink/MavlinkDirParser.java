@@ -17,9 +17,12 @@ public class MavlinkDirParser {
         List<String[]> result = new ArrayList<>();
         String[] entries = responseString.split("\\\\0");
         for (String entry: entries) {
+            if (entry.isEmpty()) {
+                continue;
+            }
             MavlinkFileType type = MavlinkFileType.fromString(entry.substring(0, 1));
             // filter types
-            if (!type.equals(typeFilter)) {
+            if (!typeFilter.equals(type)) {
                 continue;
             }
 

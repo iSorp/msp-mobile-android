@@ -22,6 +22,8 @@ import ch.bfh.ti.these.msp.viewmodel.MissionRepository;
 import ch.bfh.ti.these.msp.viewmodel.MissionViewModel;
 
 import java.io.IOException;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 
 import static ch.bfh.ti.these.msp.MspApplication.getMavlinkMaster;
 
@@ -30,6 +32,12 @@ public class MissionDetailFragment extends Fragment {
     private Handler handler;
     private MissionViewModel viewModel;
     private TextView tvName;
+    private TextView tvDescription;
+    private TextView tvCreateDate;
+    private TextView tvUpdateDate;
+    private TextView tvWaypointCount;
+    private TextView tvWaypointActionCount;
+    private TextView tvDistance;
     private Button btnSelectMission;
 
     @Override
@@ -53,22 +61,36 @@ public class MissionDetailFragment extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
         tvName = view.findViewById(R.id.tv_mission_name);
-        tvName.setVisibility(View.INVISIBLE);
+        tvDescription = view.findViewById(R.id.tv_mission_description);
+        tvCreateDate = view.findViewById(R.id.tv_createDate);
+        tvUpdateDate = view.findViewById(R.id.tv_updateDate);
+        tvWaypointCount = view.findViewById(R.id.tv_waypoint_count);
+        tvWaypointActionCount = view.findViewById(R.id.tv_waypoint_action_count);
+        tvDistance = view.findViewById(R.id.tv_distance);
         btnSelectMission = view.findViewById(R.id.btn_select_mission);
-        btnSelectMission.setVisibility(View.INVISIBLE);
+        btnSelectMission.setEnabled(false);
         btnSelectMission.setOnClickListener(
                 v -> viewModel.downloadWayPoints().observe(this, this::uploadMavlinkMission)
         );
+        Button btnBack = view.findViewById(R.id.btn_back);
+        btnBack.setEnabled(true);
+        btnBack.setOnClickListener(v -> getActivity().finish());
     }
 
     private void updateDetails(Mission m) {
+        DateFormat formatter = new SimpleDateFormat("dd:MM:yyyy HH:mm:ss");
         tvName.setText(m.getName());
+        tvDescription.setText(m.getDescription());
+        tvCreateDate.setText(formatter.format(m.getCreatedAt()));
+        tvUpdateDate.setText(formatter.format(m.getUpdatedAt()));
+        tvWaypointCount.setText(String.valueOf(m.getWaypointCount()));
+        tvWaypointActionCount.setText(String.valueOf(m.getWaypointActionCount()));
+        tvDistance.setText(m.getDistance() + " m");
         showMission();
     }
 
     private void showMission() {
-        tvName.setVisibility(View.VISIBLE);
-        btnSelectMission.setVisibility(View.VISIBLE);
+        btnSelectMission.setEnabled(true);
     }
 
     private void uploadMavlinkMission(MissionRepository.Result<Mission> result) {
@@ -77,6 +99,7 @@ public class MissionDetailFragment extends Fragment {
             try {
                 getMavlinkMaster().getMissionService().uploadMission(mission).thenAccept((a) -> {
                     showToast("Mission upload successful");
+                    getActivity().finish();
                 }).exceptionally(throwable -> {
                     showToast("Mission upload failed");
                     return null;

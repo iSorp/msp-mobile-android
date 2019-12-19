@@ -19,7 +19,15 @@
     <string name="btn_download_mission">Mission herunterladen</string>
     <string name="btn_start_mission">Start</string>
     <string name="btn_pause_mission">Pause</string>
+    <string name="btn_select_mission">Select Mission</string>
+    <string name="btn_back">Back</string>
 
+    <string name="tv_mission_list_text">Mission List</string>
+    <string name="tv_createDate_text">Create Date:</string>
+    <string name="tv_updateDate_text">Update Date:</string>
+    <string name="tv_waypoint_count_text">Waypoint Count:</string>
+    <string name="tv_waypoint_action_count_text">Waypoint Action Count:</string>
+    <string name="tv_distance_text">Distance:</string>
 
     <string name="mavlink_status">Mavlinkstatus</string>
     <string name="status">Status</string>

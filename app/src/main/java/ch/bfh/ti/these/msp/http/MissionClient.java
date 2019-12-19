@@ -69,16 +69,17 @@ public class MissionClient {
         return mission;
     }
 
-    public void uploadSensorData(List<SensorData> sensorDataList) {
+    public List<Integer> uploadSensorData(List<SensorData> sensorDataList) {
         URL url;
         try {
             url = new URL("http", host, port, "save");
         } catch (MalformedURLException e) {
-            return;
+            return new ArrayList<>();
         }
+        List<Integer> statusCodes = new ArrayList<>(sensorDataList.size());
 
-        try {
-            for (SensorData sensorData : sensorDataList) {
+        for (SensorData sensorData : sensorDataList) {
+            try {
                 HttpURLConnection urlConnection = (HttpURLConnection) url.openConnection();
                 urlConnection.setRequestMethod("POST");
                 urlConnection.setRequestProperty("Content-Type", "application/json; utf-8");
@@ -90,13 +91,16 @@ public class MissionClient {
                     os.writeBytes(sensorData.toJson().toString());
                     os.flush();
                 } catch (JSONException e) {
-
+                    statusCodes.add(400);
+                    continue;
                 }
-                int status = urlConnection.getResponseCode();
+                statusCodes.add(urlConnection.getResponseCode());
+                urlConnection.disconnect();
+            } catch (IOException e) {
+                statusCodes.add(500);
             }
-        } catch (IOException e) {
-
         }
+        return statusCodes;
     }
 
     private JSONArray getRequest(URL url) {

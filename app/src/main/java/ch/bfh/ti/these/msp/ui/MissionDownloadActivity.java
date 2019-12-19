@@ -1,8 +1,10 @@
 package ch.bfh.ti.these.msp.ui;
 
 import android.app.Application;
+import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.widget.Button;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
@@ -30,6 +32,10 @@ import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+
+import static ch.bfh.ti.these.msp.util.Definitions.BACKEND_HOST;
+import static ch.bfh.ti.these.msp.util.Definitions.BACKEND_PORT;
 
 public class MissionDownloadActivity extends AppCompatActivity {
 
@@ -50,7 +56,7 @@ public class MissionDownloadActivity extends AppCompatActivity {
 
         Toolbar toolbar = findViewById(R.id.toolbar);
         if (toolbar != null) {
-            toolbar.setTitle("Sensor data transfer");
+            toolbar.setTitle("Sensor Data Transfer");
         }
 
         downloadButton = findViewById(R.id.btn_download_data);
@@ -60,6 +66,8 @@ public class MissionDownloadActivity extends AppCompatActivity {
         clearButton.setEnabled(false);
         clearButton.setOnClickListener(v -> new ClearMissionResult().execute());
         statusText = findViewById(R.id.txt_status);
+        Button backButton = findViewById(R.id.btn_back);
+        backButton.setOnClickListener(v -> this.finish());
     }
 
     @Override
@@ -80,7 +88,7 @@ public class MissionDownloadActivity extends AppCompatActivity {
                             clearButton.setEnabled(true);
                             statusText.setText(String.format(Locale.ENGLISH, "%d files found", count));
                         } else {
-                            statusText.setText("Can not list files via Mavlink");
+                            statusText.setText("No files found");
                         }
                     });
                 }
@@ -118,6 +126,7 @@ public class MissionDownloadActivity extends AppCompatActivity {
                 future.thenAccept(consumer);
                 if (handleException) {
                     future.exceptionally(throwable -> {
+                        throwable.printStackTrace();
                         MissionDownloadActivity.this.runOnUiThread(() -> onError.accept(throwable.getMessage()));
                         return null;
                     });
@@ -127,7 +136,7 @@ public class MissionDownloadActivity extends AppCompatActivity {
                 onError.accept(e.getMessage());
             }
         } else {
-            statusText.setText("Device is not connected");
+            this.runOnUiThread(() -> statusText.setText("Device is not connected"));
         }
         return null;
     }
@@ -150,19 +159,12 @@ public class MissionDownloadActivity extends AppCompatActivity {
                                 result.msgs.add("Can not parse JSON " + file[0]);
                             }
                         },
-                        false
+                        true
                     );
-                    try {
-                        if (cf != null) {
-                            cf.get();
-                        }
-                    } catch (InterruptedException | ExecutionException e){
-                        result.status = false;
-                        result.msgs.add(
-                                String.format(Locale.ENGLISH, "Execution of file %s was interrupted", file[0])
-                        );
-                    }
+                if (cf != null) {
+                    cf.join();
                 }
+            }
             return result;
         }
 
@@ -171,7 +173,12 @@ public class MissionDownloadActivity extends AppCompatActivity {
             super.onPostExecute(result);
             if (result.status) {
                 statusText.setText("All files downloaded");
-                new UploadWaypointData(MissionDownloadActivity.this.getApplication()).execute(result.payload);
+                new UploadWaypointData(
+                        MissionDownloadActivity.this.getApplication(),
+                        MissionDownloadActivity.this.statusText
+                ).execute(result.payload);
+            } else {
+                statusText.setText(result.msgs.stream().collect(Collectors.joining()));
             }
         }
     }
@@ -188,17 +195,10 @@ public class MissionDownloadActivity extends AppCompatActivity {
                         (byte[] response) -> {
                             fileList.remove(file);
                         },
-                        false
+                        true
                 );
-                try {
-                    if (cf != null) {
-                        cf.get();
-                    }
-                } catch (InterruptedException | ExecutionException e){
-                    result.status = false;
-                    result.msgs.add(
-                            String.format(Locale.ENGLISH, "Execution of file %s was interrupted", file[0])
-                    );
+                if (cf != null) {
+                    cf.join();
                 }
             }
             return result;
@@ -213,25 +213,36 @@ public class MissionDownloadActivity extends AppCompatActivity {
         }
     }
 
-    private static class UploadWaypointData extends AsyncTask<List<MavlinkData>, Void, Void> {
+    private static class UploadWaypointData extends AsyncTask<List<MavlinkData>, Void, List<Integer>> {
 
         private final MissionClient client;
         private final ActionDao actionDao;
+        private final TextView statusText;
 
-        private UploadWaypointData(Application app) {
-            client = MissionClient.getInstance(Definitions.BACKEND_HOST, Definitions.BACKEND_PORT);
+        private UploadWaypointData(Application app, TextView statusText) {
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(app);
+            String host = prefs.getString("backendAddress", BACKEND_HOST);
+            int port = Integer.parseInt(prefs.getString("backendPort", ""+BACKEND_PORT));
+            client = MissionClient.getInstance(host, port);
             actionDao = MissionDatabase.getInstance(app).actionDao();
+            this.statusText = statusText;
         }
 
         @Override
-        protected Void doInBackground(List<MavlinkData>... waypointDataList) {
+        protected List<Integer> doInBackground(List<MavlinkData>... waypointDataList) {
             List<SensorData> allSensorData = new ArrayList<>(waypointDataList[0].size());
             for (MavlinkData da : waypointDataList[0]) {
                 List<SensorData> sensorData = Converter.convertToSensorData(da, actionDao);
                 allSensorData.addAll(sensorData);
             }
-            client.uploadSensorData(allSensorData);
-            return null;
+            return client.uploadSensorData(allSensorData);
+        }
+
+        @Override
+        protected void onPostExecute(List<Integer> integers) {
+            super.onPostExecute(integers);
+            long count = integers.stream().filter(status -> status == 200).count();
+            this.statusText.setText(String.format("%1$d/%2$d uploaded", count, integers.size()));
         }
     }
 

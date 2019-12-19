@@ -303,11 +303,66 @@ public class FtpService extends BaseService {
      * DeleteFileService
      */
     private class DeleteFileService extends BaseMicroService<Boolean> {
-        public DeleteFileService(MavlinkConnection connection, String filePath) throws IOException {
+
+        private String filePath = "";
+
+        DeleteFileService(MavlinkConnection connection, String filePath) throws IOException {
             super(connection);
+            this.filePath = filePath;
+            this.state = new FileClearInit(this);
         }
 
         // TODO DeleteFileService states
+        public class FileClearInit extends ServiceState<DeleteFileService> {
+
+            FileClearInit(DeleteFileService context) {
+                super(context);
+            }
+
+            @Override
+            public void enter() {
+                try {
+                    FtpMessage ftp = new FtpMessage.Builder()
+                            .setSeq(0)
+                            .setCode(RemoveFile)
+                            .setData(this.getContext().filePath.getBytes())
+                            .setSize(this.getContext().filePath.getBytes().length)
+                            .build();
+                    this.getContext().send(FileTransferProtocol.builder()
+                            .targetSystem(systemId)
+                            .targetComponent(componentId)
+                            .payload(ftp.getMessage())
+                            .build());
+
+                } catch (IOException e) {
+                    // TODO error handling
+                    e.printStackTrace();
+                }
+            }
+
+            @Override
+            public boolean execute() throws StateException {
+                if (this.getContext().message == null) return false;
+                if (message.getPayload() instanceof FileTransferProtocol) {
+                    FtpMessage ftp = FtpMessage.parse(message);
+
+                    if (ftp.getCode() == ACK) {
+                        this.getContext().exit(true);
+                    } else if (ftp.getCode() == NAK) {
+                        throw new StateException(this, "NAK received: " + ftp.getNakEror());
+                    }
+                }
+                return true;
+            }
+
+            @Override
+            public void timeout() throws IOException {
+                super.timeout();
+
+                // restart initialization: RemoveFile( data[0]=path, size=len(path) )
+                this.getContext().setState(new FileClearInit(this.getContext()));
+            }
+        }
     }
 
     /**

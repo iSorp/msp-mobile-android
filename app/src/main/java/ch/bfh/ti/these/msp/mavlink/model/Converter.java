@@ -49,6 +49,7 @@ public class Converter {
             sensorData.setLatitude(da.getY());
             sensorData.setAltitude(da.getZ());
             sensorData.setData(sd.getValue());
+            sensorDataList.add(sensorData);
         }
 
         return sensorDataList;

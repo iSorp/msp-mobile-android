@@ -1,27 +1,168 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout
+<androidx.constraintlayout.widget.ConstraintLayout
         xmlns:android="http://schemas.android.com/apk/res/android"
+        xmlns:app="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:context=".ui.MissionDetailFragment">
+        tools:context=".ui.MissionDetailFragment"
+        android:id="@+id/relativeLayout">
 
     <TextView
-            android:layout_width="match_parent"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:id="@+id/tv_mission_name"
-            android:textSize="30sp"/>
+            android:textSize="30sp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:text="Mission Title"
+            android:layout_marginStart="@dimen/activity_vertical_margin"
+            />
 
-    <LinearLayout
-            android:layout_width="match_parent"
+    <TextView
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
-            android:layoutDirection="rtl"
-            android:layout_alignParentBottom="true">
+            android:id="@+id/tv_mission_description"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tv_mission_name"
+            android:layout_margin="@dimen/activity_vertical_margin"
+            android:text="Description"/>
 
-        <Button
-                android:text="Button"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:id="@+id/btn_select_mission"/>
-    </LinearLayout>
-</RelativeLayout>
+
+    <TableLayout
+            android:layout_width="wrap_content"
+            android:layout_height="0dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/tv_mission_description"
+            app:layout_constraintBottom_toTopOf="@+id/btn_back"
+            android:layout_marginTop="8dp">
+
+        <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginBottom="5dp">
+
+            <TextView
+                    android:text="@string/tv_createDate_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/tv_createDate_text"
+                    android:textSize="18sp"
+                    android:layout_marginEnd="15dp"
+                    android:gravity="end"/>
+
+            <TextView
+                    android:layout_height="wrap_content"
+                    android:id="@+id/tv_createDate"
+                    android:textSize="18sp"
+                    android:minWidth="160dp"/>
+        </TableRow>
+
+        <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginBottom="5dp">
+
+            <TextView
+                    android:text="@string/tv_updateDate_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/tv_updateDate_text"
+                    android:textSize="18sp"
+                    android:layout_marginEnd="15dp"
+                    android:gravity="end"/>
+
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/tv_updateDate"
+                    android:textSize="18sp"/>
+        </TableRow>
+
+        <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginBottom="5dp">
+
+            <TextView
+                    android:text="@string/tv_waypoint_count_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/tv_waypoint_count_text"
+                    android:textSize="18sp"
+                    android:gravity="end"
+                    android:layout_marginEnd="15dp"/>
+
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/tv_waypoint_count"
+                    android:textSize="18sp"/>
+        </TableRow>
+
+        <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:layout_marginBottom="5dp">
+
+            <TextView
+                    android:text="@string/tv_waypoint_action_count_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/tv_waypoint_action_count_text"
+                    android:textSize="18sp"
+                    android:layout_marginEnd="15dp"
+                    android:gravity="end"/>
+
+            <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/tv_waypoint_action_count"
+                    android:textSize="18sp"/>
+        </TableRow>
+
+        <TableRow
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+            <TextView
+                    android:text="@string/tv_distance_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/tv_distance_text"
+                    android:textSize="18sp"
+                    android:layout_marginEnd="15dp"
+                    android:gravity="end"/>
+
+            <TextView
+                    android:text="0"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:id="@+id/tv_distance"
+                    android:textSize="18sp"/>
+
+        </TableRow>
+    </TableLayout>
+
+    <Button
+            android:text="@string/btn_select_mission"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/btn_select_mission"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_marginBottom="8dp"
+            android:layout_marginEnd="@dimen/activity_vertical_margin"/>
+
+    <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/btn_back"
+            app:layout_constraintBaseline_toBaselineOf="@+id/btn_select_mission"
+            app:layout_constraintRight_toLeftOf="@+id/btn_select_mission"
+            android:text="@string/btn_back"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

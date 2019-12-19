@@ -1,13 +1,12 @@
 package ch.bfh.ti.these.msp.db;
 
 import android.content.Context;
-import androidx.room.Database;
-import androidx.room.Room;
-import androidx.room.RoomDatabase;
+import androidx.room.*;
 import ch.bfh.ti.these.msp.models.Action;
 import ch.bfh.ti.these.msp.models.Mission;
 import ch.bfh.ti.these.msp.models.Waypoint;
 
+@TypeConverters({ValueConverters.class})
 @Database(entities = {Mission.class, Waypoint.class, Action.class}, version = 1)
 public abstract class MissionDatabase extends RoomDatabase {
     private static MissionDatabase INSTANCE;

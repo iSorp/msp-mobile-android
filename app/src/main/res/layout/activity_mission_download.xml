@@ -26,18 +26,25 @@
 
 
         <Button
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:id="@+id/btn_download_data"
                 android:layout_weight="1"
                 android:text="@string/download_data"/>
 
         <Button
-                android:layout_width="wrap_content"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:id="@+id/btn_clear_data"
                 android:layout_weight="1"
                 android:text="@string/clear_data"/>
+
+        <Button
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/btn_back"
+                android:layout_weight="1"
+                android:text="@string/btn_back"/>
     </LinearLayout>
 
     <TextView

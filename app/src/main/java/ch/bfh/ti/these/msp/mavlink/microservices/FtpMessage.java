@@ -49,6 +49,7 @@ public class FtpMessage {
     public final static int ListDirectory   = 0x03;
     public final static int OpenFileRO      = 0x04;
     public final static int ReadFile        = 0x05;
+    final static int RemoveFile             = 0x08;
     public final static int RemoveDirectory = 0x10;
     public final static int ACK             = 0x80;    // 128
     public final static int NAK             = 0x81;    // 129
