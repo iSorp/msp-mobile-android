@@ -1,6 +1,7 @@
 package ch.bfh.ti.these.msp.ui;
 
 import android.os.Bundle;
+import android.widget.ProgressBar;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
