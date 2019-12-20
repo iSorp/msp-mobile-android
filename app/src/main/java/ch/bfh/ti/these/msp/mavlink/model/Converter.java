@@ -43,10 +43,11 @@ public class Converter {
         for (MavlinkData.SensorValue sd: da.getSensors()) {
             SensorData sensorData = new SensorData();
 
+
             sensorData.setWaypointActionId(dao.getActionId(da.getSeq(), sd.getSensorId(), sd.getCommandId()));
             sensorData.setTime(da.getTime());
-            sensorData.setLongitude(da.getX());
-            sensorData.setLatitude(da.getY());
+            sensorData.setLongitude(da.getX()); //  *(float)Math.PI/(float)180);
+            sensorData.setLatitude(da.getY());  //  *(float)Math.PI/(float)180);
             sensorData.setAltitude(da.getZ());
             sensorData.setData(sd.getValue());
             sensorDataList.add(sensorData);
