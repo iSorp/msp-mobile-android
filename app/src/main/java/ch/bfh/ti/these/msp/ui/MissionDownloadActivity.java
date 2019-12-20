@@ -5,7 +5,9 @@ import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.view.View;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
@@ -44,6 +46,7 @@ public class MissionDownloadActivity extends AppCompatActivity {
     private Button downloadButton;
     private Button clearButton;
     private TextView statusText;
+    private ProgressBar progressBar;
 
     private int count;
     private List<String[]> fileList;
@@ -54,6 +57,7 @@ public class MissionDownloadActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_mission_download);
 
+        progressBar = findViewById(R.id.progressBar);
         Toolbar toolbar = findViewById(R.id.toolbar);
         if (toolbar != null) {
             toolbar.setTitle("Sensor Data Transfer");
@@ -143,27 +147,38 @@ public class MissionDownloadActivity extends AppCompatActivity {
 
     private class DownloadMissionResult extends AsyncTask<Void, Void, MavlinkFtpResult<List<MavlinkData>>> {
 
+        public DownloadMissionResult() {
+            progressBar.post(()-> progressBar.setVisibility(View.VISIBLE));
+        }
+
         @Override
         protected MavlinkFtpResult<List<MavlinkData>> doInBackground(Void... voids) {
             MavlinkFtpResult<List<MavlinkData>> result = new MavlinkFtpResult<>();
             result.payload = new ArrayList<>();
             for (String[] file : fileList) {
-                CompletableFuture cf = mavlinkExecCommand(
-                        MavlinkFtpCommand.Download,
-                        MAVLINK_DATA_DIR + file[0],
-                        (byte[] response) -> {
-                            try {
-                                result.payload.add(MavlinkData.fromJson(new JSONObject(new String(response))));
-                            } catch (JSONException e) {
-                                result.status = false;
-                                result.msgs.add("Can not parse JSON " + file[0]);
-                            }
-                        },
-                        true
+
+                try {
+                    CompletableFuture cf = mavlinkExecCommand(
+                            MavlinkFtpCommand.Download,
+                            MAVLINK_DATA_DIR + file[0],
+                            (byte[] response) -> {
+                                try {
+                                    result.payload.add(MavlinkData.fromJson(new JSONObject(new String(response))));
+                                } catch (JSONException e) {
+                                    result.status = false;
+                                    result.msgs.add("Can not parse JSON " + file[0]);
+                                }
+                            },
+                            true
                     );
-                if (cf != null) {
-                    cf.join();
+                    if (cf != null) {
+                        cf.join();
+                    }
                 }
+                catch (Exception exception) {
+                    exception.printStackTrace();
+                }
+
             }
             return result;
         }
@@ -213,7 +228,7 @@ public class MissionDownloadActivity extends AppCompatActivity {
         }
     }
 
-    private static class UploadWaypointData extends AsyncTask<List<MavlinkData>, Void, List<Integer>> {
+    private class UploadWaypointData extends AsyncTask<List<MavlinkData>, Void, List<Integer>> {
 
         private final MissionClient client;
         private final ActionDao actionDao;
@@ -230,19 +245,33 @@ public class MissionDownloadActivity extends AppCompatActivity {
 
         @Override
         protected List<Integer> doInBackground(List<MavlinkData>... waypointDataList) {
-            List<SensorData> allSensorData = new ArrayList<>(waypointDataList[0].size());
-            for (MavlinkData da : waypointDataList[0]) {
-                List<SensorData> sensorData = Converter.convertToSensorData(da, actionDao);
-                allSensorData.addAll(sensorData);
+            try {
+                List<SensorData> allSensorData = new ArrayList<>(waypointDataList[0].size());
+                for (MavlinkData da : waypointDataList[0]) {
+                    List<SensorData> sensorData = Converter.convertToSensorData(da, actionDao);
+                    allSensorData.addAll(sensorData);
+                }
+                return client.uploadSensorData(allSensorData);
             }
-            return client.uploadSensorData(allSensorData);
+            catch (Exception exception) {
+                exception.printStackTrace();
+            }
+            return null;
         }
 
         @Override
         protected void onPostExecute(List<Integer> integers) {
             super.onPostExecute(integers);
-            long count = integers.stream().filter(status -> status == 200).count();
-            this.statusText.setText(String.format("%1$d/%2$d uploaded", count, integers.size()));
+            try {
+                long count = integers.stream().filter(status -> status == 200).count();
+                this.statusText.setText(String.format("%1$d/%2$d uploaded", count, integers.size()));
+            }
+            catch (Exception exception) {
+                exception.printStackTrace();
+            }
+            finally {
+                progressBar.post(()-> progressBar.setVisibility(View.INVISIBLE));
+            }
         }
     }
 

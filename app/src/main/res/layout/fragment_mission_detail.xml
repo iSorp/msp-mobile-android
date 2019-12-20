@@ -8,6 +8,16 @@
         tools:context=".ui.MissionDetailFragment"
         android:id="@+id/relativeLayout">
 
+    <ProgressBar
+            style="?android:attr/progressBarStyle"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/progressBar"
+            android:visibility="invisible"
+            android:layout_marginTop="41dp" app:layout_constraintTop_toBottomOf="@+id/lay_buttons"
+            android:layout_marginBottom="8dp" app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_marginEnd="8dp" app:layout_constraintEnd_toStartOf="@+id/btn_back"
+            android:layout_marginStart="8dp" app:layout_constraintStart_toStartOf="parent"/>
     <TextView
             android:layout_width="0dp"
             android:layout_height="wrap_content"
@@ -37,8 +47,8 @@
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@+id/tv_mission_description"
-            app:layout_constraintBottom_toTopOf="@+id/btn_back"
-            android:layout_marginTop="8dp">
+            android:layout_marginTop="8dp" android:layout_marginBottom="8dp"
+            app:layout_constraintBottom_toTopOf="@+id/progressBar">
 
         <TableRow
                 android:layout_width="match_parent"

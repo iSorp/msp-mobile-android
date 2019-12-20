@@ -3,6 +3,7 @@ package ch.bfh.ti.these.msp.ui;
 import android.os.Handler;
 import android.os.Looper;
 import android.widget.Button;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.fragment.app.FragmentActivity;
@@ -39,6 +40,8 @@ public class MissionDetailFragment extends Fragment {
     private TextView tvWaypointActionCount;
     private TextView tvDistance;
     private Button btnSelectMission;
+    private ProgressBar progressBar;
+
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, @Nullable ViewGroup container,
@@ -75,6 +78,8 @@ public class MissionDetailFragment extends Fragment {
         Button btnBack = view.findViewById(R.id.btn_back);
         btnBack.setEnabled(true);
         btnBack.setOnClickListener(v -> getActivity().finish());
+
+        progressBar = view.findViewById(R.id.progressBar);
     }
 
     private void updateDetails(Mission m) {
@@ -95,6 +100,7 @@ public class MissionDetailFragment extends Fragment {
 
     private void uploadMavlinkMission(MissionRepository.Result<Mission> result) {
         if (result.getStatus()) {
+            progressBar.post(()->progressBar.setVisibility(View.VISIBLE));
             MavlinkMission mission = Converter.convertToUploadItems(result.getPayload());
             try {
                 getMavlinkMaster().getMissionService().uploadMission(mission).thenAccept((a) -> {
@@ -107,6 +113,9 @@ public class MissionDetailFragment extends Fragment {
             } catch (IOException e) {
                 e.printStackTrace();
                 // @TODO SetStatus
+            }
+            finally {
+                progressBar.post(()->progressBar.setVisibility(View.INVISIBLE));
             }
         }
     }
