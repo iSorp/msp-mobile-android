@@ -18,6 +18,7 @@ import dji.sdk.sdkmanager.DJISDKManager;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Arrays;
 import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.ReentrantLock;
@@ -33,6 +34,7 @@ public class MavlinkAirlinkBridge implements MavlinkBridge {
     private final Semaphore writeBuffer = new Semaphore(1);       // fill buffer from OSDK (provide data for input stream)
     private final Semaphore transfereBuffer = new Semaphore(1);   // send data to OSDK and wait (transfereBuffer) for response
     private final Object aircraftLock = new Object();
+    private final Object writeLock = new Object();
 
     private byte[] buffer = new byte[0];
     private boolean empty = true;
@@ -160,33 +162,46 @@ public class MavlinkAirlinkBridge implements MavlinkBridge {
 
             int writePos = 0;
 
+            System.out.println("");
+            for (int value : data) {
+                System.out.print(String.format("%x", (value & 0xff)));
+            }
+            System.out.println("");
+
             if (data.length > OSDK_DATA_MAX_SIZE) {
+
                 try {
                     while (writePos < data.length) {
 
-                        // wait for callback response (if waiting for response is not necessary the sync can be removed)
-                        transfereBuffer.acquire();
+                        synchronized (writeLock) {
+                            // wait for callback response (if waiting for response is not necessary the sync can be removed)
+                            transfereBuffer.tryAcquire(100, TimeUnit.MILLISECONDS);
 
-                        int length = Math.min(data.length - writePos, OSDK_DATA_MAX_SIZE);
-                        byte[] buf = new byte[length];
-                        System.arraycopy(data, writePos, buf, 0, length);
-                        writePos += length;
-                        aircraft.getFlightController().sendDataToOnboardSDKDevice(buf, completionCallback);
+                            int length = Math.min(data.length - writePos, OSDK_DATA_MAX_SIZE);
+                            byte[] buf = new byte[length];
+                            System.arraycopy(data, writePos, buf, 0, length);
+                            writePos += length;
+
+                            aircraft.getFlightController().sendDataToOnboardSDKDevice(buf, completionCallback);
+                        }
                     }
-                } catch (InterruptedException e) {
+                } catch (Exception e) {
                     e.printStackTrace();
                 }
             } else {
-                aircraft.getFlightController().sendDataToOnboardSDKDevice(data, completionCallback);
+                synchronized (writeLock) {
+                    aircraft.getFlightController().sendDataToOnboardSDKDevice(data, completionCallback);
+                }
             }
         }
     }
 
     private CommonCallbacks.CompletionCallback completionCallback = (DJIError djiError) -> {
-
-        if (djiError != null)
-            System.out.println(djiError.getDescription());
-        if (transfereBuffer.availablePermits() == 0)
-            transfereBuffer.release();
+        synchronized (writeLock) {
+            if (djiError != null)
+                System.out.println(djiError.getDescription());
+            if (transfereBuffer.availablePermits() == 0)
+                transfereBuffer.release();
+        }
     };
 }

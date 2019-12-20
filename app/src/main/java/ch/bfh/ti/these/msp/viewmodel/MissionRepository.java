@@ -66,24 +66,28 @@ public class MissionRepository {
     LiveData<Result<Mission>> loadWayPoints(String missionId) {
         final MutableLiveData<Result<Mission>> liveData = new MutableLiveData<>();
         executorService.execute(() -> {
-            Mission m = missionDao.findOneById(missionId);
-            if (m != null) {
-                Mission backendMission = MissionClient.getInstance(host, port).getMission(missionId);
-                for (Waypoint wp: backendMission.getWaypoints()) {
-                    wayPointDao.insert(wp);
-                    for (Action a: wp.getActions()) {
-                        actionDao.insert(a);
+            try {
+                Mission m = missionDao.findOneById(missionId);
+                if (m != null) {
+                    Mission backendMission = MissionClient.getInstance(host, port).getMission(missionId);
+                    for (Waypoint wp : backendMission.getWaypoints()) {
+                        wayPointDao.insert(wp);
+                        for (Action a : wp.getActions()) {
+                            actionDao.insert(a);
+                        }
+                    }
+                    Result<Mission> result = new Result<>();
+                    if (backendMission.getWaypoints().size() > 0) {
+                        result.status = true;
+                        result.payload = backendMission;
+                        liveData.postValue(result);
+                    } else {
+                        result.status = false;
+                        liveData.postValue(result);
                     }
                 }
-                Result<Mission> result = new Result<>();
-                if (backendMission.getWaypoints().size() > 0) {
-                    result.status = true;
-                    result.payload = backendMission;
-                    liveData.postValue(result);
-                } else {
-                    result.status = false;
-                    liveData.postValue(result);
-                }
+            }catch (Exception e) {
+                e.printStackTrace();
             }
         });
         return liveData;
