@@ -49,7 +49,7 @@ public class BaseMicroService<TResult> implements Callable<TResult> {
     }
 
     public void send(Object payload) throws IOException {
-        connection.send1(MAVLINK_GCS_SYS_ID, MAVLINK_GCS_COMP_ID, payload);
+        connection.send2(MAVLINK_GCS_SYS_ID, MAVLINK_GCS_COMP_ID, payload);
     }
 
     public void exit(TResult result) {

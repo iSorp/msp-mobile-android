@@ -65,7 +65,7 @@ public class HeartbeatService extends BaseService {
 
 
     private void sendHearbeat() throws IOException {
-        connection.send1(MAVLINK_GCS_SYS_ID, MAVLINK_GCS_COMP_ID, Heartbeat.builder()
+        connection.send2(MAVLINK_GCS_SYS_ID, MAVLINK_GCS_COMP_ID, Heartbeat.builder()
                 .type(MavType.MAV_TYPE_GCS)
                 .autopilot(MavAutopilot.MAV_AUTOPILOT_INVALID)
                 .systemStatus(MavState.MAV_STATE_UNINIT)
