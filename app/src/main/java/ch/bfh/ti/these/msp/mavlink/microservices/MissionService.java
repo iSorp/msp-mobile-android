@@ -179,7 +179,7 @@ public class MissionService extends BaseService {
 
                     MavlinkMessage<MissionAck> mess = (MavlinkMessage<MissionAck>) message;
 
-                    if (mess.getPayload().type().entry() == MavMissionResult.MAV_MISSION_ACCEPTED)
+                    if (mess.getPayload().type() == null || mess.getPayload().type().entry() == MavMissionResult.MAV_MISSION_ACCEPTED)
                         this.getContext().setState(new MissionUploadEnd(this.getContext()));
                     else
                         throw new StateException(getContext().state, mess.getPayload().type().toString());
