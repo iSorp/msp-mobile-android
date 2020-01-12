@@ -3,38 +3,87 @@
 
     <string name="navigation_drawer_open">Open navigation drawer</string>
     <string name="navigation_drawer_close">Close navigation drawer</string>
-    <string name="nav_header_title">Mobile Sensorplatform</string>
-    <string name="nav_header_subtitle">by Appmodul</string>
+    <string name="nav_header_title">Mobile Sensor Platform</string>
+    <string name="nav_header_subtitle"></string>
     <string name="nav_header_desc">Navigation header</string>
 
 
-    <string name="textview_mission">Mission</string>
-
-    <string name="btn_settings">Einstellungen</string>
-    <string name="btn_mission">Missionen</string>
-    <string name="btn_command">Kommandos</string>
-    <string name="btn_live_view">Live Bild</string>
-    <string name="btn_cancel">Abbrechen</string>
-    <string name="btn_upload_mission">Mission übertragen</string>
-    <string name="btn_download_mission">Mission herunterladen</string>
-    <string name="btn_start_mission">Start</string>
-    <string name="btn_pause_mission">Pause</string>
-    <string name="btn_select_mission">Select Mission</string>
     <string name="btn_back">Back</string>
+    <string name="status">Status</string>
 
-    <string name="tv_mission_list_text">Mission List</string>
+    <!--Views -->
+    <string name="nav_menu_views">Views</string>
+    <string name="nav_menu_manager">Management</string>
+
+    <string name="nav_frag_fpv_text">Camera View</string>
+    <string name="nav_frag_telemetrie_text">Telemetrie View</string>
+    <string name="nav_frag_map_text">Map View</string>
+
+    <string name="nav_mission_text">Mission</string>
+    <string name="nav_mission_download_text">Data Transfer</string>
+    <string name="nav_settings_text">Settings</string>
+
+
+    <!--Register -->
+    <string name="reg_register_text">Registering MSDK</string>
+    <string name="reg_db_load_process_text">DB load process</string>
+
+
+    <!--Telemetrie -->
+    <string name="tel_voltage_text">Battery Voltage</string>
+    <string name="tel_current_text">Battery Current</string>
+    <string name="tel_height_text">Height</string>
+    <string name="tel_height_unit_text">m AGL</string>
+    <string name="tel_speed_text">Speed</string>
+    <string name="tel_position_text">Location</string>
+
+    <!--Mission -->
+    <string name="mission_name_text">Mission Title</string>
+    <string name="mission_description_text">Descriptiont</string>
+    <string name="btn_upload_mission">Mission Upload</string>
+    <string name="btn_download_mission">Mission Download</string>
+    <string name="btn_select_mission">Select Mission</string>
+    <string name="textview_mission">Mission</string>
     <string name="tv_createDate_text">Create Date:</string>
     <string name="tv_updateDate_text">Update Date:</string>
     <string name="tv_waypoint_count_text">Waypoint Count:</string>
     <string name="tv_waypoint_action_count_text">Waypoint Action Count:</string>
     <string name="tv_distance_text">Distance:</string>
 
-    <string name="mavlink_status">Mavlinkstatus</string>
-    <string name="status">Status</string>
-    <string name="takeOff">Take Off</string>
-    <string name="returnToOrigin">Return To Origin</string>
-    <string name="landing">Landing</string>
-
+    <!--FTP -->
     <string name="download_data">Download Data</string>
     <string name="clear_data">Clear Data</string>
+
+    <!--Messages -->
+    <string name="msg_mission_start_successful">Mission start successful</string>
+    <string name="msg_mission_start_failed">Mission start failed</string>
+    <string name="msg_mission_completed">Mission Completed</string>
+    <string name="msg_mission_waypoint">Mission Waypoint</string>
+    <string name="msg_reached">reached</string>
+
+    <string name="msg_mission_paused_successful">Mission paused successful</string>
+    <string name="msg_mission_paused_failed">Mission paused failed</string>
+    <string name="msg_mission_upload_successful">Mission upload successful</string>
+    <string name="msg_mission_upload_failed">Mission upload failed</string>
+
+
+    <string name="msg_state_na">N/A</string>
+    <string name="msg_state_ok">OK</string>
+    <string name="msg_state_mission">MISSION</string>
+    <string name="msg_state_rc">Only RC Connected</string>
+    <string name="msg_state_disconn">Disconnected</string>
+    <string name="msg_state_product_con">Product Connected</string>
+    <string name="msg_state_product_dis">Product Disconnected</string>
+
+    <string name="msg_missing_permissions">Missing permissions!</string>
+    <string name="msg_msdk_register_failed">Registering sdk failed, check if network is available</string>
+    <string name="msg_msdk_register_success">Register Success</string>
+
+    <string name="msg_device_not_connected">Device is not connected</string>
+    <string name="msg_not_parse_json">Can not parse JSON</string>
+    <string name="msg_all_files_downloaded">All files downloaded</string>
+    <string name="msg_all_files_cleared">All files cleared</string>
+    <string name="msg_no_files_found">No files found</string>
+
+
 </resources>

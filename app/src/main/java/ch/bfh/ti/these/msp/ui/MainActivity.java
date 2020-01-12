@@ -57,8 +57,8 @@ public class MainActivity extends AppCompatActivity implements
     private TextView statusText;
     private FloatingActionButton droneActionButton;
 
-    private String djiStatus = "-";
-    private String mavlinkStatus = "-";
+    private String djiStatus = "N/A";
+    private String mavlinkStatus = "N/A";
 
     private static final String TAG = MainActivity.class.getName();
     public static final String FLAG_CONNECTION_CHANGE = "dji_sdk_connection_change";
@@ -100,14 +100,14 @@ public class MainActivity extends AppCompatActivity implements
             if (product != null) {
                 if (product.isConnected()) {
                     //The product is connected
-                    djiStatus = "OK";//DJIApplication.getProductInstance().getModel() + " Connected";
+                    djiStatus = getString(R.string.msg_state_ok);//DJIApplication.getProductInstance().getModel() + " Connected";
                     ret = true;
                 } else {
                     if (product instanceof Aircraft) {
                         Aircraft aircraft = (Aircraft) product;
                         if (aircraft.getRemoteController() != null && aircraft.getRemoteController().isConnected()) {
                             // The product is not connected, but the remote controller is connected
-                            djiStatus = "only RC Connected";
+                            djiStatus = getString(R.string.msg_state_rc);
                             ret = true;
                         }
                     }
@@ -116,7 +116,7 @@ public class MainActivity extends AppCompatActivity implements
 
             if (!ret) {
                 // The product or the remote controller are not connected.
-                djiStatus = "Disconnected";
+                djiStatus = getString(R.string.msg_state_disconn);
             }
             updateStatusText();
         }
@@ -203,15 +203,15 @@ public class MainActivity extends AppCompatActivity implements
             MavlinkMessage<MissionItemReached> msg = (MavlinkMessage<MissionItemReached>)message;
             short seq =  (short)msg.getPayload().seq();
             if (seq < 0) {
-                mavlinkStatus = "OK";
+                mavlinkStatus = getString(R.string.msg_state_ok);
                 updateStatusText();
-                showToast("Mission completed");
+                showToast(getString(R.string.msg_mission_completed));
             }
 
             if (seq >= 0) {
-                mavlinkStatus = "MISSION";
+                mavlinkStatus = getString(R.string.msg_state_mission);
                 updateStatusText();
-                showToast("Mission waypoint: " + (seq+1) + " reached");
+                showToast(getString(R.string.msg_mission_waypoint)+ " " + (seq+1) + " " + getString(R.string.msg_reached));
             }
         }
     }
@@ -219,9 +219,9 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public void connectionStatusChanged(MavlinkConnectionInfo info) {
         if (info.isConnected())
-            mavlinkStatus = "OK";
+            mavlinkStatus = getString(R.string.msg_state_ok);
         else
-            mavlinkStatus = "-";
+            mavlinkStatus = getString(R.string.msg_state_na);
 
         updateStatusText();
     }
@@ -239,13 +239,13 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void onProductConnect() {
-        djiStatus = "Product connected";
+        djiStatus = getString(R.string.msg_state_product_con);
         updateStatusText();
     }
 
     @Override
     public void onProductDisconnect() {
-        djiStatus = "Product disconnected";
+        djiStatus = getString(R.string.msg_state_product_dis);
         updateStatusText();
     }
 
@@ -262,7 +262,7 @@ public class MainActivity extends AppCompatActivity implements
 
     private void updateStatusText() {
         statusText.post(() -> {
-            statusText.setText("Status: " + "DJI-" + djiStatus + "  MSP-" + mavlinkStatus);
+            statusText.setText(getString(R.string.status) + ": DJI-" + djiStatus + "  MSP-" + mavlinkStatus);
         });
     }
 
@@ -295,10 +295,10 @@ public class MainActivity extends AppCompatActivity implements
             try {
                 getMavlinkMaster().getMissionService().startMission()
                         .thenAccept(res -> {
-                            showToast("Mission start successful");
+                            showToast(getString(R.string.msg_mission_start_successful));
                         })
                         .exceptionally(throwable -> {
-                            showToast("Mission start failed");
+                            showToast(getString(R.string.msg_mission_start_failed));
                             return null;
                         });
             } catch (IOException e) {
@@ -310,10 +310,10 @@ public class MainActivity extends AppCompatActivity implements
             try {
                 getMavlinkMaster().getMissionService().pauseMission()
                         .thenAccept(res -> {
-                            showToast( "Mission paused successful");
+                            showToast(getString(R.string.msg_mission_paused_successful));
                         })
                         .exceptionally(throwable -> {
-                            showToast( "Mission paused failed");
+                            showToast(getString(R.string.msg_mission_paused_failed));
                             return null;
                         });
             } catch (IOException e) {
@@ -323,7 +323,7 @@ public class MainActivity extends AppCompatActivity implements
         FabAnimation.init(fabTakeOff);
         FabAnimation.init(fabPause);
         droneActionButton = findViewById(R.id.fab_drone_action);
-        droneActionButton.hide();
+        //droneActionButton.hide();
         droneActionButton.setOnClickListener(new View.OnClickListener() {
             boolean isRotate;
             @Override

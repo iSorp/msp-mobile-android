@@ -20,10 +20,10 @@ import java.util.concurrent.ThreadFactory;
 
 public class HeartbeatServiceTest {
 
-    //private MavlinkUdpBridge mavlinkBridge = new MavlinkUdpBridge(Definitions.MAVLINK_TEST_SOURCE_PORT, Definitions.MAVLINK_TEST_TARGET, Definitions.MAVLINK_TEST_TARGET_PORT);
+    private MavlinkUdpBridge mavlinkBridge = new MavlinkUdpBridge(Definitions.MAVLINK_TEST_SOURCE_PORT, Definitions.MAVLINK_TEST_TARGET, Definitions.MAVLINK_TEST_TARGET_PORT);
     private MavlinkMaster master;
 
-    private MavlinkAirlinkBridge mavlinkBridge = new MavlinkAirlinkBridge();
+    //private MavlinkAirlinkBridge mavlinkBridge = new MavlinkAirlinkBridge();
 
     @Before
     public void tearUp() throws Exception {

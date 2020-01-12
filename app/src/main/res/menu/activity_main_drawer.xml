@@ -4,32 +4,32 @@
       tools:showIn="navigation_view">
 
 
-    <item android:title="Views">
+    <item android:title="@string/nav_menu_views">
         <group android:checkableBehavior="single">
             <item
                     android:id="@+id/nav_fpv"
-                    android:title="First person view"/>
+                    android:title="@string/nav_frag_fpv_text"/>
             <item
                     android:id="@+id/nav_map"
-                    android:title="Map view"/>
+                    android:title="@string/nav_frag_map_text"/>
             <item
                     android:id="@+id/nav_telemetrie"
-                    android:title="Telemetrie view"/>
+                    android:title="@string/nav_frag_telemetrie_text"/>
         </group>
     </item>
 
 
-    <item android:title="Actions">
+    <item android:title="@string/nav_menu_manager">
         <menu>
             <item
                     android:id="@+id/nav_mission"
-                    android:title="Mission"/>
+                    android:title="@string/nav_mission_text"/>
             <item
                     android:id="@+id/nav_mission_download"
-                    android:title="Sensor data transfer"/>
+                    android:title="@string/nav_mission_download_text"/>
             <item
                     android:id="@+id/nav_settings"
-                    android:title="Settings"/>
+                    android:title="@string/nav_settings_text"/>
         </menu>
     </item>
 

@@ -142,7 +142,7 @@ public class RegisterFragment extends Fragment {
         if (missingPermission.isEmpty()) {
             MspApplication.startDjiRegistration();
         } else {
-            Toast.makeText(getActivity().getApplicationContext(), "Missing permissions!!!", Toast.LENGTH_LONG).show();
+            Toast.makeText(getActivity().getApplicationContext(), getString(R.string.msg_missing_permissions), Toast.LENGTH_LONG).show();
         }
     }
 
@@ -160,22 +160,22 @@ public class RegisterFragment extends Fragment {
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals(DJIApplication.FLAG_REGISTER_CHANGE)) {
                 if (DJISDKManager.getInstance().hasSDKRegistered()) {
-                    setStatusTextAsync("Register Success");
+                    setStatusTextAsync(getString(R.string.msg_msdk_register_success));
                     getListener().onRegisterComplete();
                 }
                 else {
-                    setStatusTextAsync("Register sdk fails, check network is available");
+                    setStatusTextAsync(getString(R.string.msg_msdk_register_failed));
                 }
             }
             else if (intent.getAction().equals(DJIApplication.FLAG_DB_DOWNLOAD_CHANGE)) {
                 int process = intent.getIntExtra("value", 0);
                 showProgress(process);
-                setStatusTextAsync("DB load process : " + process);
+                setStatusTextAsync(getString(R.string.reg_db_load_process_text) + ": " + process);
             }
             else if (intent.getAction().equals(DJIApplication.FLAG_CONNECTION_CHANGE)) {
                 BaseProduct product = DJIApplication.getProductInstance();
                 if (product != null) {
-                    setStatusTextAsync("Product connected");
+                    setStatusTextAsync(getString(R.string.msg_state_product_con));
                     handler.postDelayed(()-> {
                         progressBar.setVisibility(View.INVISIBLE);
                         progressBar.setProgress(0);

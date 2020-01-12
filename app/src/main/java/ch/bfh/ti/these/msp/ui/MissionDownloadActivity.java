@@ -46,6 +46,7 @@ public class MissionDownloadActivity extends AppCompatActivity {
     private Button downloadButton;
     private Button clearButton;
     private TextView statusText;
+    private TextView statusBarText;
     private ProgressBar progressBar;
 
     private int count;
@@ -60,7 +61,7 @@ public class MissionDownloadActivity extends AppCompatActivity {
         progressBar = findViewById(R.id.progressBar);
         Toolbar toolbar = findViewById(R.id.toolbar);
         if (toolbar != null) {
-            toolbar.setTitle("Sensor Data Transfer");
+            toolbar.setTitle(getString(R.string.nav_mission_download_text));
         }
 
         downloadButton = findViewById(R.id.btn_download_data);
@@ -72,6 +73,9 @@ public class MissionDownloadActivity extends AppCompatActivity {
         statusText = findViewById(R.id.txt_status);
         Button backButton = findViewById(R.id.btn_back);
         backButton.setOnClickListener(v -> this.finish());
+
+        statusBarText = findViewById(R.id.toolbar_status);
+        statusBarText.setVisibility(View.INVISIBLE);
     }
 
     @Override
@@ -92,7 +96,7 @@ public class MissionDownloadActivity extends AppCompatActivity {
                             clearButton.setEnabled(true);
                             statusText.setText(String.format(Locale.ENGLISH, "%d files found", count));
                         } else {
-                            statusText.setText("No files found");
+                            statusText.setText(getString(R.string.msg_no_files_found));
                         }
                     });
                 }
@@ -140,7 +144,7 @@ public class MissionDownloadActivity extends AppCompatActivity {
                 onError.accept(e.getMessage());
             }
         } else {
-            this.runOnUiThread(() -> statusText.setText("Device is not connected"));
+            this.runOnUiThread(() -> statusText.setText(getString(R.string.msg_device_not_connected)));
         }
         return null;
     }
@@ -166,7 +170,7 @@ public class MissionDownloadActivity extends AppCompatActivity {
                                     result.payload.add(MavlinkData.fromJson(new JSONObject(new String(response))));
                                 } catch (JSONException e) {
                                     result.status = false;
-                                    result.msgs.add("Can not parse JSON " + file[0]);
+                                    result.msgs.add(getString(R.string.msg_not_parse_json) + ": " + file[0]);
                                 }
                             },
                             true
@@ -187,7 +191,7 @@ public class MissionDownloadActivity extends AppCompatActivity {
         protected void onPostExecute(MavlinkFtpResult<List<MavlinkData>> result) {
             super.onPostExecute(result);
             if (result.status) {
-                statusText.setText("All files downloaded");
+                statusText.setText(getString(R.string.msg_all_files_downloaded));
                 new UploadWaypointData(
                         MissionDownloadActivity.this.getApplication(),
                         MissionDownloadActivity.this.statusText
@@ -223,7 +227,7 @@ public class MissionDownloadActivity extends AppCompatActivity {
         protected void onPostExecute(MavlinkFtpResult<byte[]> result) {
             super.onPostExecute(result);
             if (result.status) {
-                statusText.setText("All files cleared");
+                statusText.setText(getString(R.string.msg_all_files_cleared));
             }
         }
     }

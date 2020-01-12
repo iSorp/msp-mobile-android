@@ -113,7 +113,7 @@ public class TelemetrieFragment extends Fragment implements MavlinkMessageListen
                         textViewHeightValue.setText(String.valueOf(altitude));
                         textViewSpeedValue.setText(df4.format(velocity));
                         textViewPosNValue.setText("N " + df4.format(latitude));
-                        textViewPosOValue.setText("O " + df4.format(longitude));
+                        textViewPosOValue.setText("E " + df4.format(longitude));
                     }
                     catch (Exception exceptin) {
                         exceptin.printStackTrace();

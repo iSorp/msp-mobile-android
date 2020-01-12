@@ -14,19 +14,19 @@
     <fragment
             android:id="@+id/nav_frag_fpv"
             android:name="ch.bfh.ti.these.msp.ui.FpvFragment"
-            android:label="FPV View">
+            android:label="@string/nav_frag_fpv_text">
     </fragment>
 
     <fragment
             android:id="@+id/nav_frag_telemetrie"
             android:name="ch.bfh.ti.these.msp.ui.TelemetrieFragment"
-            android:label="Telemetrie View">
+            android:label="@string/nav_frag_telemetrie_text">
     </fragment>
 
     <fragment
             android:id="@+id/nav_frag_map"
             android:name="ch.bfh.ti.these.msp.ui.MapFragment"
-            android:label="Map View">
+            android:label="@string/nav_frag_map_text">
     </fragment>
 
 </navigation>

@@ -104,10 +104,10 @@ public class MissionDetailFragment extends Fragment {
             MavlinkMission mission = Converter.convertToUploadItems(result.getPayload());
             try {
                 getMavlinkMaster().getMissionService().uploadMission(mission).thenAccept((a) -> {
-                    showToast("Mission upload successful");
+                    showToast(getString(R.string.msg_mission_upload_successful));
                     getActivity().finish();
                 }).exceptionally(throwable -> {
-                    showToast("Mission upload failed");
+                    showToast(getString(R.string.msg_mission_upload_failed));
                     return null;
                 });
             } catch (IOException e) {
