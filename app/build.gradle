@@ -94,8 +94,5 @@ dependencies {
     implementation "com.google.android.gms:play-services-location:15.0.1"
     implementation 'com.google.android.gms:play-services-maps:17.0.0'
 
-    implementation files('libs/mavlink-1.1.5.jar')
-    implementation files('libs/mavlink-protocol-1.1.5.jar')
-
-    //implementation 'io.dronefleet.mavlink:mavlink:1.1.6'
+    implementation 'io.dronefleet.mavlink:mavlink:1.1.8'
 }
